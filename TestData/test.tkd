@@ -1,0 +1,7 @@
+﻿<tsumiki version="1.00.00">
+  <layer name="Layer01">
+    <block type="cube" x="0" y="0" z="0" />
+    <block type="cube" x="509" y="184" z="0" />
+    <block type="cube" x="512" y="184" z="0" />
+  </layer>
+</tsumiki>
