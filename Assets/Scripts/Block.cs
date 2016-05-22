@@ -2,143 +2,30 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Xml;
+using System;
 
-public class BlockMesh
-{
-	public List<Vector3> vertexPos = new List<Vector3>();
-	public List<Vector2> vertexUv = new List<Vector2>();
-	public List<int> trianglesIndices = new List<int>();
-	public List<int> linesIndices = new List<int>();
-
-	public void Clear() {
-		this.vertexPos.Clear();
-		this.vertexUv.Clear();
-		this.trianglesIndices.Clear();
-		this.linesIndices.Clear();
-	}
+public enum BlockDirection {
+	Zplus,
+	Zminus,
+	Xplus,
+	Xminus,
+	Yplus,
+	Yminus,
 };
 
-public class BlockGroup
-{
-	private Dictionary<int, Block> blocks = new Dictionary<int, Block>();
-	private BlockMesh blockMesh = new BlockMesh();
-
-	public Block AddBlock(Block block) {
-		if (this.blocks.ContainsKey(block.GetHashCode())) {
-			return null;
-		}
-		this.blocks.Add(block.GetHashCode(), block);
-		return block;
-	}
-	public Block RemoveBlock(Vector3 position) {
-		Block block = null;
-		int hash = Block.CalcHashCode(position);
-		if (this.blocks.TryGetValue(hash, out block)) {
-			this.blocks.Remove(hash);
-			return block;
-		}
-		return null;
-	}
-	public void Clear() {
-		this.blocks.Clear();
-	}
-	public int GetBlockCount() {
-		return this.blocks.Count;
-	}
-	public Block GetBlock(Vector3 position) {
-		int key = Block.CalcHashCode(position);
-		Block value;
-		if (this.blocks.TryGetValue(key, out value)) {
-			return value;
-		}
-		return null;
-	}
-	public Block[] GetAllBlocks() {
-		var values = this.blocks.Values;
-		Block[] blocks = new Block[values.Count];
-		values.CopyTo(blocks,0);
-		return blocks;
-	}
-
-	public void UpdateMesh() {
-		this.blockMesh.Clear();
-		foreach (var block in this.blocks) {
-			block.Value.WriteToMesh(this, this.blockMesh);
-		}
-	}
-	public Mesh GetSurfaceMesh() {
-		Mesh mesh = new Mesh();
-		mesh.name = "SurfaceBlocks";
-		mesh.vertices = this.blockMesh.vertexPos.ToArray();
-		mesh.uv       = this.blockMesh.vertexUv.ToArray();
-		mesh.SetIndices(this.blockMesh.trianglesIndices.ToArray(), MeshTopology.Triangles, 0);
-		mesh.RecalculateNormals();
-		mesh.RecalculateBounds();
-		return mesh;
-	}
-	public Mesh GetWireMesh() {
-		Mesh mesh = new Mesh();
-		mesh.name = "WireBlocks";
-		mesh.vertices = this.blockMesh.vertexPos.ToArray();
-		mesh.SetIndices(this.blockMesh.linesIndices.ToArray(), MeshTopology.Lines, 0);
-		mesh.RecalculateBounds();
-		return mesh;
-	}
-	public Mesh GetColliderMesh() {
-		Mesh mesh = new Mesh();
-		mesh.name = "ColliderBlocks";
-		mesh.vertices = this.blockMesh.vertexPos.ToArray();
-		mesh.SetIndices(this.blockMesh.trianglesIndices.ToArray(), MeshTopology.Triangles, 0);
-		mesh.RecalculateBounds();
-		return mesh;
-	}
-
-	public void Serialize(XmlElement node) {
-		foreach (var keyValue in this.blocks) {
-			XmlElement blockNode = node.OwnerDocument.CreateElement("block");
-			Block block = keyValue.Value;
-			block.Serialize(blockNode);
-			node.AppendChild(blockNode);
-		}
-	}
-	public void Deserialize(XmlElement node) {
-		XmlNodeList blockList = node.GetElementsByTagName("block");
-		for (int i = 0; i < blockList.Count; i++) {
-			XmlElement blockNode = blockList[i] as XmlElement;
-			Block block = Block.Create(blockNode.GetAttribute("type"));
-			block.Deserialize(blockNode);
-			this.AddBlock(block);
-		}
-	}
-}
-
+// 基本ブロック
 public class Block
 {
-	public enum Direction {
-		Zplus,
-		Zminus,
-		Xplus,
-		Xminus,
-		Yplus,
-		Yminus,
-	};
+	// 隣接ブロックへのオフセット
 	public static readonly Vector3[] neighborOffsets = {
-		new Vector3( 0,  0,  1),
-		new Vector3( 0,  0, -1),
-		new Vector3( 1,  0,  0),
-		new Vector3(-1,  0,  0),
-		new Vector3( 0,  0.5f,  0),
-		new Vector3( 0, -0.5f,  0),
+		new Vector3( 0.0f,  0.0f,  1.0f),
+		new Vector3( 0.0f,  0.0f, -1.0f),
+		new Vector3( 1.0f,  0.0f,  0.0f),
+		new Vector3(-1.0f,  0.0f,  0.0f),
+		new Vector3( 0.0f,  0.5f,  0.0f),
+		new Vector3( 0.0f, -0.5f,  0.0f),
 	};
 	
-	public static Block Create(string typeName) {
-		switch (typeName) {
-		case "cube":
-			return new CubeBlock();
-		default:
-			return new CubeBlock();
-		}
-	}
 	public static int CalcHashCode(Vector3 position) {
 		int x = Mathf.RoundToInt(position.x) + 512;
 		int y = Mathf.RoundToInt(position.y * 2) + 512;
@@ -146,86 +33,194 @@ public class Block
 		return ((z & 0x3f) << 20) | ((y & 0x3f) << 10) | (x & 0x3f);
 	}
 
-	public virtual string typeName {
-		get {return "";}
-	}
 	public Vector3 position {get; private set;}
-	public Vector3 realPosition {get; private set;}
-	
+	public BlockDirection direction {get; private set;}
+	public BlockShape shape {get; private set;}
+	private int[] textureChips = new int[6];
+	private bool meshIsDirty = true;
 	private int hashCode;
 
-	public Block() {
-		this.SetPosition(Vector3.zero);
+	public override int GetHashCode() {
+		return this.hashCode;
+	}
+	
+	public Block(Vector3 position, BlockDirection direction)
+		: this(position, direction, "cube") {
+	}
+
+	public Block(Vector3 position, BlockDirection direction, string typeName) {
+		this.shape = BlockShape.Find(typeName);
+		this.direction = direction;
+		this.SetPosition(position);
+	}
+
+	public Block(XmlElement node) {
+		this.Deserialize(node);
 	}
 
 	public void SetPosition(Vector3 position) {
 		this.position = position;
 		this.hashCode = Block.CalcHashCode(position);
+		this.meshIsDirty = true;
 	}
 
-	public virtual void WriteToMesh(BlockGroup group, BlockMesh mesh) {
+	public void SetDirection(BlockDirection direction) {
+		this.direction = direction;
+		this.meshIsDirty = true;
 	}
 
-	public virtual bool IsBlockage(Direction direction) {
+	public int GetTextureChip(BlockDirection direction) {
+		return this.textureChips[(int)direction];
+	}
+
+	public void SetTextureChip(BlockDirection direction, int textureChip) {
+		this.textureChips[this.ToLocalDirection((int)direction)] = textureChip;
+		this.meshIsDirty = true;
+	}
+	
+	private static readonly int[,] ToWorldDirectionTable = new int[4, 6] {
+		{0, 1, 2, 3, 4, 5}, {1, 0, 3, 2, 4, 5}, 
+		{2, 3, 1, 0, 4, 5}, {3, 2, 0, 1, 4, 5}};
+	private int ToWorldDirection(int index) {
+		return ToWorldDirectionTable[(int)this.direction, index];
+	}
+
+	private static readonly int[,] ToLocalDirectionTable = new int[4, 6] {
+		{0, 1, 2, 3, 4, 5}, {1, 0, 3, 2, 4, 5}, 
+		{3, 2, 0, 1, 4, 5}, {2, 3, 1, 0, 4, 5}};
+	private int ToLocalDirection(int index) {
+		return ToLocalDirectionTable[(int)this.direction, index];
+	}
+
+	public int GetConnection(BlockDirection direction) {
+		return this.shape.connection[ToLocalDirection((int)direction)];
+	}
+
+	// 隣のブロックとの閉塞チェック
+	private bool CheckOcculusion(BlockGroup group, BlockDirection direction) {
+		int dirIndex = (int)direction;
+		// 隣のブロックに完全に覆われていたら省略する（閉塞チェック）
+		Block neighborBlock = group.GetBlock(this.position + neighborOffsets[dirIndex]);
+		if (neighborBlock != null) {
+			int con1 = this.GetConnection((BlockDirection)(dirIndex));
+			int con2 = neighborBlock.GetConnection((BlockDirection)(dirIndex ^ 1));
+			if (con1 >= 1 && con2 == 1) {
+				return true;
+			} else if (con1 >= 2 && con2 >= 2 &&
+				(this.shape.connectionType == neighborBlock.shape.connectionType))
+			{
+				int idx1 = this.ToWorldDirection(con1 - 2);
+				int idx2 = neighborBlock.ToWorldDirection(con2 - 2);
+				if (idx1 == idx2) {
+					return true;
+				}
+			}
+		}
 		return false;
 	}
 
-	public override int GetHashCode() {
-		return this.hashCode;
-	}
-
-	public virtual void Serialize(XmlElement node) {
-		node.SetAttribute("type", this.typeName);
-		node.SetAttribute("x", this.position.x.ToString());
-		node.SetAttribute("y", this.position.y.ToString());
-		node.SetAttribute("z", this.position.z.ToString());
-	}
-	public virtual void Deserialize(XmlElement node) {
-		Vector3 position = Vector3.zero;
-		float.TryParse(node.Attributes["x"].Value, out position.x);
-		float.TryParse(node.Attributes["y"].Value, out position.y);
-		float.TryParse(node.Attributes["z"].Value, out position.z);
-		this.SetPosition(position);
-	}
-};
-
-public class CubeBlock : Block
-{
-	public override string typeName {
-		get {return "cube";}
-	}
-
-	public override void WriteToMesh(BlockGroup group, BlockMesh mesh) {
+	// 表示用メッシュを出力
+	public void WriteToMesh(BlockGroup group, BlockMeshMerger meshMerger) {
+		BlockShape shape = this.shape;
 		for (int i = 0; i < 6; i++) {
-			int offset = mesh.vertexPos.Count;
+			int index = this.ToLocalDirection(i);
+			int offset = meshMerger.vertexPos.Count;
 			
-			Block neighbor = group.GetBlock(this.position + Block.neighborOffsets[i]);
-			if (neighbor != null && neighbor.IsBlockage((Block.Direction)(i ^ 1))) {
+			var mesh = shape.meshes[index];
+			if (mesh == null) {
 				continue;
 			}
 
-			for (int j = 0; j < 4; j++) {
-				mesh.vertexPos.Add(this.position + EditUtil.blockVertexPoints[EditUtil.blockFaceIndices[i][j]] * 0.5f);
-				mesh.vertexUv.Add(EditUtil.blockVertexUvs[j]);
+			// 隣のブロックに完全に覆われていたら省略する
+			if (this.CheckOcculusion(group, (BlockDirection)i)) {
+				continue;
 			}
+
+			var chip = TexturePalette.Instance.GetChip(this.textureChips[index]);
 			
-			for (int j = 0; j < 6; j++) {
-				mesh.trianglesIndices.Add(offset + EditUtil.trianglesIndices[j]);
+			Vector3[] vertexPos = mesh.vertices;
+			Vector2[] vertexUv = mesh.uv;
+			for (int j = 0; j < vertexPos.Length; j++) {
+				Vector3 localPosition = vertexPos[j];
+				meshMerger.vertexPos.Add(this.position + EditUtil.RotatePosition(localPosition, this.direction));
+				meshMerger.vertexUv.Add(chip.ApplyUV(vertexUv[j]));
 			}
-			for (int j = 0; j < 8; j++) {
-				mesh.linesIndices.Add(offset + EditUtil.linesIndices[j]);
+			int[] indices = mesh.GetIndices(0);
+			for (int j = 0; j < indices.Length; j++) {
+				meshMerger.triangles.Add(offset + indices[j]);
 			}
 		}
 	}
-	
-	public override bool IsBlockage(Direction direction) {
-		return true;
+
+	// ガイド用メッシュを出力
+	public void WriteToGuideMesh(BlockGroup group, BlockMeshMerger mesh) {
+		bool vertexHasWrote = false;
+
+		for (int i = 0; i < 6; i++) {
+			// 隣のブロックに完全に覆われていたら省略する
+			if (this.CheckOcculusion(group, (BlockDirection)i)) {
+				continue;
+			}
+			
+			// 頂点が書き出されていなければここで書き出す
+			if (!vertexHasWrote) {
+				for (int j = 0; j < EditUtil.cubeVertices.Length; j++) {
+					mesh.guideVertexPos.Add(this.position + EditUtil.cubeVertices[j]);
+				}
+				vertexHasWrote = true;
+			}
+
+			int offset = mesh.guideVertexPos.Count - EditUtil.cubeVertices.Length;
+			mesh.guideTriangles.Add(offset + EditUtil.cubeQuadIndices[i * 4 + 0]);
+			mesh.guideTriangles.Add(offset + EditUtil.cubeQuadIndices[i * 4 + 1]);
+			mesh.guideTriangles.Add(offset + EditUtil.cubeQuadIndices[i * 4 + 2]);
+			mesh.guideTriangles.Add(offset + EditUtil.cubeQuadIndices[i * 4 + 0]);
+			mesh.guideTriangles.Add(offset + EditUtil.cubeQuadIndices[i * 4 + 2]);
+			mesh.guideTriangles.Add(offset + EditUtil.cubeQuadIndices[i * 4 + 3]);
+		}
 	}
-	
-	public override void Serialize(XmlElement node) {
-		base.Serialize(node);
+
+	// 書き込み
+	public void Serialize(XmlElement node) {
+		node.SetAttribute("type", this.shape.name);
+		node.SetAttribute("x", this.position.x.ToString());
+		node.SetAttribute("y", this.position.y.ToString());
+		node.SetAttribute("z", this.position.z.ToString());
+		node.SetAttribute("dir", ((int)this.direction).ToString());
+		string[] tileStrArray = Array.ConvertAll<int, string>(this.textureChips, (value) => {return value.ToString();});
+		node.SetAttribute("tile", string.Join(",", tileStrArray));
 	}
-	public override void Deserialize(XmlElement node) {
-		base.Deserialize(node);
+	// 読み込み
+	public void Deserialize(XmlElement node) {
+		if (node.HasAttribute("type")) {
+			string typeName = node.GetAttribute("type");
+			this.shape = BlockShape.Find(typeName);
+		} else {
+			this.shape = BlockShape.Find("cube");
+		}
+
+		Vector3 position = Vector3.zero;
+		if (node.HasAttribute("x")) {
+			float.TryParse(node.GetAttribute("x"), out position.x);
+		}
+		if (node.HasAttribute("y")) {
+			float.TryParse(node.GetAttribute("y"), out position.y);
+		}
+		if (node.HasAttribute("z")) {
+			float.TryParse(node.GetAttribute("z"), out position.z);
+		}
+		this.SetPosition(position);
+
+		if (node.HasAttribute("dir")) {
+			int dir;
+			int.TryParse(node.GetAttribute("dir"), out dir);
+			this.direction = (BlockDirection)dir;
+		}
+		
+		if (node.HasAttribute("tile")) {
+			string tileStr = node.GetAttribute("tile");
+			string[] tileStrArray = tileStr.Split(',');
+			this.textureChips = Array.ConvertAll<string, int>(tileStrArray, (value) => {return int.Parse(value);});
+		}
 	}
 };

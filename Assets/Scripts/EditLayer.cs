@@ -12,7 +12,9 @@ public class EditLayer : MonoBehaviour
 		this.gameObject.AddComponent<MeshFilter>();
 		this.gameObject.AddComponent<MeshCollider>();
 		var meshRenderer = this.gameObject.AddComponent<MeshRenderer>();
-		meshRenderer.material = Resources.Load<Material>("Materials/StandardBlockMaterial");
+		var material = Resources.Load<Material>("Materials/BlockMaterial");
+		meshRenderer.material = material;
+		material.mainTexture = Resources.Load<Texture>("Textures/01");
 	}
 
 	void Update() {
@@ -26,22 +28,51 @@ public class EditLayer : MonoBehaviour
 		this.dirtyMesh = true;
 	}
 
+	public void SetDirty() {
+		this.dirtyMesh = true;
+	}
+
+	// ブロックの追加
 	public Block AddBlock(Block block) {
 		this.blockGroup.AddBlock(block);
 		this.dirtyMesh = true;
 		return block;
 	}
-
-	public Block RemoveBlock(Vector3 position) {
-		var block = this.blockGroup.RemoveBlock(position);
+	
+	// ブロックの追加(複数)
+	public void AddBlocks(Block[] blocks) {
+		foreach (var block in blocks) {
+			this.blockGroup.AddBlock(block);
+		}
 		this.dirtyMesh = true;
-		return block;
 	}
+
+	// ブロックの削除
+	public void RemoveBlock(Block block) {
+		this.blockGroup.RemoveBlock(block);
+		this.dirtyMesh = true;
+	}
+
+	// ブロックの削除(複数)
+	public void RemoveBlocks(Block[] blocks) {
+		foreach (var block in blocks) {
+			this.blockGroup.RemoveBlock(block);
+		}
+		this.dirtyMesh = true;
+	}
+
+	// 特定の位置のブロックを取得
 	public Block GetBlock(Vector3 position) {
 		return this.blockGroup.GetBlock(position);
 	}
+
+	// 全ブロックの取得
 	public Block[] GetAllBlocks() {
 		return this.blockGroup.GetAllBlocks();
+	}
+
+	public BlockGroup GetBlockGroup() {
+		return this.blockGroup;
 	}
 
 	protected void UpdateMesh() {

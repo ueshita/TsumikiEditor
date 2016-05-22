@@ -8,23 +8,22 @@ public partial class EditManager : MonoBehaviour
 {
 	public enum Tool {
 		Pen, Eraser, Brush, Spuit,
-		PointSelect, RectSelect
+		PointSelector, RectSelector
 	}
 
 	public static EditManager Instance {get; private set;}
 
-	public string FilePath {get; private set;}
-	public bool Changed {get; private set;}
-	
 	public List<EditLayer> Layers {get; private set;}
 	public EditLayer CurrentLayer {get {return this.Layers[this.currentLayerIndex];}}
 	int currentLayerIndex = 0;
 	
-	public EditSelection Selection {get; private set;}
+	public EditSelector Selector {get; private set;}
 	public EditGrid Grid {get; private set;}
+	public EditCursor Cursor {get; private set;}
 
 	private Tool tool = Tool.Pen;
-	private EditFiler filer = null;
+	private string toolBlock = "cube";
+	private int toolChip = 0;
 	private List<Command> cmdlist = new List<Command>();
 	private int cmdpos = 0;
 
@@ -34,25 +33,61 @@ public partial class EditManager : MonoBehaviour
 		}
 		EditManager.Instance = this;
 		
-		this.filer = new EditFiler();
 		this.Layers = new List<EditLayer>();
 		
 		var gridObj = new GameObject("Grid");
 		gridObj.transform.parent = this.transform;
 		this.Grid = gridObj.AddComponent<EditGrid>();
 		
-		var selectionObj = new GameObject("Selection");
+		var cursorObj = new GameObject("EditCursor");
+		cursorObj.transform.parent = EditManager.Instance.transform;
+		this.Cursor = cursorObj.AddComponent<EditCursor>();
+		
+		var selectionObj = new GameObject("Selector");
 		selectionObj.transform.parent = this.transform;
-		this.Selection = selectionObj.AddComponent<EditSelection>();
+		this.Selector = selectionObj.AddComponent<EditSelector>();
 	}
 	void Start() {
 		this.Reset();
 
-		Load("TestData/house.tkd");
+		FileManager.Load("TestData/kaidan.tkd");
+		//FileManager.Load("TestData/test.tkd");
 	}
+	
+	public void SetTool(Tool tool) {
+		this.tool = tool;
 
+		switch (this.tool) {
+		case Tool.Pen:
+			this.Cursor.SetBlock(this.toolBlock);
+			break;
+		case Tool.Eraser:
+		case Tool.PointSelector:
+			this.Cursor.SetBlock();
+			break;
+		case Tool.Brush:
+		case Tool.Spuit:
+			this.Cursor.SetPanel();
+			break;
+		}
+	}
 	public Tool GetTool() {
 		return this.tool;
+	}
+
+	public void SetToolBlock(string blockName) {
+		this.toolBlock = blockName;
+		if (this.tool == Tool.Pen) {
+			this.Cursor.SetBlock(this.toolBlock);
+		}
+	}
+
+	public string GetToolBlock() {
+		return this.toolBlock;
+	}
+	
+	public void SetToolChip(int chipIndex) {
+		this.toolChip = chipIndex;
 	}
 
 	public EditLayer AddLayer(string name) {
@@ -72,47 +107,14 @@ public partial class EditManager : MonoBehaviour
 			GameObject.Destroy(layer.gameObject);
 		}
 		this.Layers.Clear();
-		this.Selection.Clear();
+		this.Selector.Clear();
 	
 		this.cmdlist.Clear();
 		this.cmdpos = 0;
-		this.Changed = false;
 	}
 
 	public void Reset() {
 		this.Clear();
 		this.AddLayer("Layer01");
-		this.Layers[0].AddBlock(new CubeBlock());
-	}
-
-	public void SetTool(Tool tool) {
-		this.tool = tool;
-	}
-
-	public void Load(string filePath) {
-		this.Clear();
-		this.filer.Load(filePath);
-		this.FilePath = filePath;
-		this.Changed = false;
-	}
-	
-	public void Save(string filePath) {
-		this.filer.Save(filePath);
-		this.FilePath = filePath;
-		this.Changed = false;
-	}
-
-	public void Undo() {
-		if (this.cmdpos > 0 && this.cmdlist.Count > 0) {
-			this.cmdpos--;
-			this.cmdlist[this.cmdpos].Undo();
-		}
-	}
-	
-	public void Redo() {
-		if (this.cmdpos < this.cmdlist.Count) {
-			this.cmdlist[this.cmdpos].Redo();
-			this.cmdpos++;
-		}
 	}
 }

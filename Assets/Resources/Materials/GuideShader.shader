@@ -2,53 +2,56 @@
 {
 	Properties
 	{
-		_Color ("Color", Color) = (1,1,1,1)
+		_Color1 ("Color1", Color) = (1,1,1,1)
+		_Color2 ("Color2", Color) = (1,1,1,1)
 	}
 	SubShader
 	{
 		Tags {"Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent"}
 		LOD 100
-		//ZWrite Off
+		ZWrite Off
+		ZTest LEqual
+		Offset -1, -1
 		Blend SrcAlpha OneMinusSrcAlpha 
 		
-		Pass
-		{
+		Pass {
 			CGPROGRAM
 			#pragma vertex vert
 			#pragma fragment frag
-			// make fog work
-			#pragma multi_compile_fog
-			
 			#include "UnityCG.cginc"
 
-			float4 _Color;
-
-			struct appdata
-			{
+			struct appdata_t {
 				float4 vertex : POSITION;
 			};
 
-			struct v2f
-			{
-				UNITY_FOG_COORDS(1)
+			struct v2f {
+				float3 worldPos : TEXCOORD0;
 				float4 vertex : SV_POSITION;
 			};
+		
+			float4 _Color1;
+			float4 _Color2;
 
-			v2f vert (appdata v)
+			v2f vert(appdata_t v)
 			{
 				v2f o;
 				o.vertex = mul(UNITY_MATRIX_MVP, v.vertex);
-				UNITY_TRANSFER_FOG(o,o.vertex);
+				o.worldPos = mul(_Object2World, v.vertex);
 				return o;
 			}
-			
-			fixed4 frag (v2f i) : SV_Target
+		
+			float repeat(float value, float min, float max) {
+				float dist = max - min;
+				value -= min;
+				value = fmod(value, dist);
+				return value + min;
+			}
+
+			fixed4 frag(v2f i) : SV_Target
 			{
-				// sample the texture
-				fixed4 col = _Color;
-				// apply fog
-				UNITY_APPLY_FOG(i.fogCoord, col);
-				return col;
+				float time = _Time.y + 1000;
+				float ratio = abs(repeat(time + i.worldPos.x + i.worldPos.y + i.worldPos.z, -1.0, 1.0));
+				return lerp(_Color1, _Color2, ratio);
 			}
 			ENDCG
 		}
