@@ -4,7 +4,7 @@ using System;
 using System.IO;
 using System.Collections;
 
-public class EditMenu : MonoBehaviour
+public class Menu : MonoBehaviour
 {
 	public void NewButton_OnClick() {
 		EditManager.Instance.Reset();
@@ -29,10 +29,16 @@ public class EditMenu : MonoBehaviour
 			FileManager.Save(path);
 		}
 	}
-	public void ExportButton_OnClick() {
-		string path = FileManager.OpenExportDialog();
+	public void ExportOBJButton_OnClick() {
+		string path = FileManager.OpenExportDialog(FileManager.ExportFormat.OBJ);
 		if (!String.IsNullOrEmpty(path)) {
 			OBJExporter.Export(path, EditManager.Instance.CurrentLayer.GetBlockGroup());
+		}
+	}
+	public void ExportE3DButton_OnClick() {
+		string path = FileManager.OpenExportDialog(FileManager.ExportFormat.E3D);
+		if (!String.IsNullOrEmpty(path)) {
+			E3DExporter.Export(path, EditManager.Instance.CurrentLayer.GetBlockGroup());
 		}
 	}
 
@@ -53,5 +59,8 @@ public class EditMenu : MonoBehaviour
 	}
 	public void ToolRectSelect_OnValueChanged(Toggle tgl) {
 		if (tgl.isOn) EditManager.Instance.SetTool(EditManager.Tool.RectSelector);
+	}
+	public void ToolRoutePath_OnValueChanged(Toggle tgl) {
+		if (tgl.isOn) EditManager.Instance.SetTool(EditManager.Tool.RoutePath);
 	}
 }

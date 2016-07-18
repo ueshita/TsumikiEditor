@@ -1,10 +1,10 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class EditGrid : MonoBehaviour
+public class Grid : MonoBehaviour
 {
 	void Start() {
-		int sizeX = 99, sizeZ = 99;
+		int sizeX = 100, sizeZ = 100;
 
 		var meshFilter = this.gameObject.AddComponent<MeshFilter>();
 		meshFilter.sharedMesh = EditUtil.CreateGrid(sizeX, sizeZ);
@@ -16,6 +16,7 @@ public class EditGrid : MonoBehaviour
 		var collider = this.gameObject.AddComponent<BoxCollider>();
 		collider.size = new Vector3(sizeX, 0.0f, sizeZ);
 
-		this.transform.position = new Vector3(0.0f, -0.25f, 0.0f);
+		Vector3 position = new Vector3(50.0f, 0, 50.0f) + new Vector3(-0.5f, -0.25f, -0.5f);
+		this.transform.position = EditManager.Instance.ToWorldCoordinate(position);
 	}
 }

@@ -16,6 +16,7 @@ public class EditInput : MonoBehaviour,
 	Text cursorPositionText;			// カーソル位置の表示
 	Image selectionRect;				// 矩形選択の範囲の表示
 
+	bool dragging = false;
 	bool modifierControl = false;
 	bool modifierShift = false;
 	private Vector3 rectBasePoint;
@@ -32,9 +33,13 @@ public class EditInput : MonoBehaviour,
 		this.cursorPositionText = GameObject.Find("CursorPositionText").GetComponent<Text>();
 	}
 	void Update() {
+		//Todo:Dragイベントは反応が遅い！Inputで実装する！
+
 		this.UpdateInput();
 
 		Vector3 point = EditManager.Instance.Cursor.point;
+		point = EditManager.Instance.ToWorldCoordinate(point);
+		point.y *= 2;
 		this.cursorPositionText.text = String.Format(
 			"(x:{0,4})(y:{1,4})(z:{2,4})", 
 			Mathf.RoundToInt(point.x), 
@@ -56,7 +61,14 @@ public class EditInput : MonoBehaviour,
 			}
 			// 上書き保存
 			if (e.keyCode == KeyCode.S) {
-				GameObject.FindObjectOfType<EditMenu>().SaveButton_OnClick();
+				GameObject.FindObjectOfType<Menu>().SaveButton_OnClick();
+			}
+			// 全選択
+			if (e.keyCode == KeyCode.A) {
+				EditManager.Instance.Selector.Clear();
+				foreach (var block in EditManager.Instance.CurrentLayer.GetAllBlocks()) {
+					EditManager.Instance.Selector.Add(block.position);
+				}
 			}
 		}
 		if (e.type == EventType.keyDown && e.control) {
@@ -101,31 +113,45 @@ public class EditInput : MonoBehaviour,
 			if (Input.GetKeyDown(KeyCode.Return)) {
 				EditManager.Instance.Selector.ReleaseBlocks();
 			}
-			if (Input.GetKeyDown(KeyCode.UpArrow)) {
+			if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow)) {
 				EditManager.Instance.Selector.Move(new Vector2(0.0f, 1.0f));
 			}
-			if (Input.GetKeyDown(KeyCode.DownArrow)) {
+			if (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow)) {
 				EditManager.Instance.Selector.Move(new Vector2(0.0f, -1.0f));
 			}
-			if (Input.GetKeyDown(KeyCode.LeftArrow)) {
+			if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow)) {
 				EditManager.Instance.Selector.Move(new Vector2(-1.0f, 0.0f));
 			}
-			if (Input.GetKeyDown(KeyCode.RightArrow)) {
+			if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow)) {
 				EditManager.Instance.Selector.Move(new Vector2(1.0f, 0.0f));
 			}
-			if (Input.GetKeyDown(KeyCode.A)) {
+			if (Input.GetKeyDown(KeyCode.Q)) {
 				if (EditManager.Instance.Selector.HasSelectedBlocks()) {
 					EditManager.Instance.Selector.Rotate(1);
 				} else {
 					EditManager.Instance.Cursor.TurnBlock(1);
 				}
 			}
-			if (Input.GetKeyDown(KeyCode.D)) {
+			if (Input.GetKeyDown(KeyCode.E)) {
 				if (EditManager.Instance.Selector.HasSelectedBlocks()) {
 					EditManager.Instance.Selector.Rotate(-1);
 				} else {
 					EditManager.Instance.Cursor.TurnBlock(-1);
 				}
+			}
+		}
+
+		if (this.dragging) {
+			if (Input.GetMouseButton(0)) {
+				switch (EditManager.Instance.GetTool()) {
+				case EditManager.Tool.RectSelector:
+					this.UpdateRectSelection(Input.mousePosition);
+					break;
+				}
+			} else if (Input.GetMouseButton(1)) {
+				this.cameraController.OnDrag(1, Input.mousePosition);
+			} else if (Input.GetMouseButton(2)) {
+				this.cameraController.OnDrag(2, Input.mousePosition);
 			}
 		}
 	}
@@ -141,6 +167,7 @@ public class EditInput : MonoBehaviour,
 	
 	// ドラッグ開始
 	public void OnBeginDrag(PointerEventData e) {
+		this.dragging = true;
 		if (e.button == 0) {
 			switch (EditManager.Instance.GetTool()) {
 			case EditManager.Tool.RectSelector:
@@ -154,6 +181,7 @@ public class EditInput : MonoBehaviour,
 	
 	// ドラッグ終了
 	public void OnEndDrag(PointerEventData e) {
+		this.dragging = false;
 		if (e.button == 0) {
 			switch (EditManager.Instance.GetTool()) {
 			case EditManager.Tool.RectSelector:
@@ -167,7 +195,7 @@ public class EditInput : MonoBehaviour,
 
 	// ドラッグ中
 	public void OnDrag(PointerEventData e) {
-		if (e.button == 0) {
+		/*if (e.button == 0) {
 			switch (EditManager.Instance.GetTool()) {
 			case EditManager.Tool.RectSelector:
 				this.UpdateRectSelection(e.position);
@@ -175,7 +203,7 @@ public class EditInput : MonoBehaviour,
 			}
 		} else {
 			this.cameraController.OnDrag((int)e.button, e.position);
-		}
+		}*/
 	}
 
 	// ホイールスクロール
@@ -230,6 +258,29 @@ public class EditInput : MonoBehaviour,
 			if (!this.modifierControl && !this.modifierShift) {
 				selector.ReleaseBlocks();
 				selector.Clear();
+			}
+			break;
+		case EditManager.Tool.RoutePath:
+			if (cursorIsEnabled) {
+				var routePath = EditManager.Instance.routePath;
+				var block = EditManager.Instance.CurrentLayer.GetBlock(point);
+				if (routePath.isSelected) {
+					// パス確定
+					if (routePath.ContainsPath(routePath.selectedPosition, block.position)) {
+						// 存在していたら消す
+						routePath.RemovePath(routePath.selectedPosition, block.position);
+					} else {
+						// 存在していなかったら追加
+						routePath.AddPath(routePath.selectedPosition, block.position);
+					}
+					routePath.isSelected = false;
+					EditManager.Instance.Selector.Clear();
+				} else {
+					// パスの開始ブロックを選択
+					EditManager.Instance.Selector.Add(block.position);
+					routePath.selectedPosition = block.position;
+					routePath.isSelected = true;
+				}
 			}
 			break;
 		}

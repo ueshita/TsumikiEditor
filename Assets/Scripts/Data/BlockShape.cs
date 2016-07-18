@@ -23,20 +23,22 @@ public class BlockShape
 	
 	public readonly int connectionType;
 	
-	/// 接続タイプ
+	/// 隣のブロックへの接続タイプ
 	/// 0: 閉塞無し
 	/// 1: 完全閉塞
 	/// 2~: 不完全閉塞(~の向き)
 	public readonly int[] connection;
 	public readonly Mesh[] meshes;
+	public readonly int[] routePanel;
 
 	public BlockShape(string name, string displayName, 
-		int connectionType, int[] connection
+		int connectionType, int[] connection, int[] routePanel
 	) {
 		this.name = name;
 		this.displayName = displayName;
 		this.connectionType = connectionType;
 		this.connection = connection;
+		this.routePanel = routePanel;
 
 		this.meshes = new Mesh[6];
 
@@ -87,19 +89,25 @@ public class BlockShape
 		};
 	}
 	public static BlockShape[] palette = {
-		new BlockShape("cube", "標準",
-			0, new int[]{1, 1, 1, 1, 1, 1}),
+		new BlockShape("cube", "標準ブロック",
+			0, new int[]{1, 1, 1, 1, 1, 1}, new int[]{1, 1, 1, 1}),
 		new BlockShape("diag-slope-large", "対角斜面(大)",
-			1, new int[]{4, 1, 3, 0, 0, 1}),
+			2, new int[]{4, 1, 3, 0, 0, 1}, new int[]{0, 1, 1, 1}),
 		new BlockShape("slope", "斜面",
-			1, new int[]{0, 1, 2, 2, 0, 1}),
+			2, new int[]{0, 1, 2, 2, 0, 1}, new int[]{0, 0, 1, 1}),
 		new BlockShape("diag-slope-small", "対角斜面(小)",
-			1, new int[]{0, 5, 2, 0, 0, 1}),
+			2, new int[]{0, 5, 2, 0, 0, 1}, new int[]{0, 0, 1, 0}),
 		new BlockShape("steep-slope-top", "急斜面(上)",
-			2, new int[]{0, 1, 2, 2, 0, 2}),
+			4, new int[]{0, 1, 2, 2, 0, 2}, new int[]{0, 0, 0, 0}),
 		new BlockShape("steep-slope-btm", "急斜面(下)",
-			2, new int[]{0, 1, 2, 2, 0, 2}),
+			4, new int[]{0, 1, 2, 2, 0, 2}, new int[]{1, 1, 1, 1}),
 		new BlockShape("stair", "階段",
-			3, new int[]{0, 1, 2, 2, 0, 1}),
+			4, new int[]{0, 1, 2, 2, 0, 1}, new int[]{0, 0, 1, 1}),
+		new BlockShape("half", "半ブロック",
+			5, new int[]{2, 2, 2, 2, 1, 0}, new int[]{1, 1, 1, 1}),
+		new BlockShape("half-joint", "半ブロック(コネクタ)",
+			5, new int[]{2, 2, 2, 2, 1, 0}, new int[]{1, 1, 1, 1}),
+		new BlockShape("cube-arc", "丸みブロック",
+			6, new int[]{0, 5, 2, 0, 2, 2}, new int[]{1, 1, 1, 1}),
 	};
 }

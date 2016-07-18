@@ -30,13 +30,23 @@ public static class FileManager
 		}
 	}
 
-	public static string OpenExportDialog() {
+	public enum ExportFormat {
+		OBJ, E3D
+	}
+	public static string OpenExportDialog(ExportFormat format) {
 		FileDialog fd;
 		fd = new SaveFileDialog();
 		fd.Title = "Export data";
 		using (fd) {
 			fd.InitialDirectory = (lastDirPath != null) ? lastDirPath : "";
-			fd.Filter = "Alias Wavefront OBJ File (*.obj)|*.obj";
+			switch (format) {
+			case ExportFormat.OBJ:
+				fd.Filter = "Alias Wavefront OBJ File (*.obj)|*.obj";
+				break;
+			case ExportFormat.E3D:
+				fd.Filter = "E3D Model Format v3 File (*.e3d)|*.e3d";
+				break;
+			}
 			if (fd.ShowDialog() == DialogResult.OK) {
 				lastDirPath = Path.GetDirectoryName(fd.FileName);
 				return fd.FileName;

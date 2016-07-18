@@ -8,7 +8,7 @@ public class EditCursor : MonoBehaviour
 	public BlockDirection blockDirection {get; private set;}
 	public BlockDirection panelDirection {get; private set;}
 	
-	private EditGuide guide;
+	private Guide guide;
 	private Mesh panelSurfaceMesh;
 	private Mesh panelLineMesh;
 	private Mesh blockSurfaceMesh;
@@ -18,7 +18,7 @@ public class EditCursor : MonoBehaviour
 		var guideObj = new GameObject();
 		guideObj.name = "Guide";
 		guideObj.transform.parent = this.transform;
-		this.guide = guideObj.AddComponent<EditGuide>();
+		this.guide = guideObj.AddComponent<Guide>();
 		this.guide.SetColor(new Color(0.5f, 0.5f, 1.0f), new Color(1.0f, 1.0f, 1.0f));
 
 		this.panelSurfaceMesh = EditUtil.CreatePanelSurfaceMesh();
@@ -52,10 +52,10 @@ public class EditCursor : MonoBehaviour
 
 	public void Update() {
 		bool visible = false;
-		
+
 		// マウスカーソルの処理
 		Vector3 point, normal;
-		bool cursorEnabled = this.GetCuesorPoint(out point, out normal);
+		bool cursorEnabled = this.GetCursorPoint(out point, out normal);
 		var block = EditManager.Instance.CurrentLayer.GetBlock(point);
 
 		switch (EditManager.Instance.GetTool()) {
@@ -86,6 +86,7 @@ public class EditCursor : MonoBehaviour
 			break;
 		case EditManager.Tool.Brush:
 		case EditManager.Tool.Spuit:
+		case EditManager.Tool.RoutePath:
 			if (cursorEnabled && block != null) {
 				this.point = point;
 				// 面カーソルを置く
@@ -110,7 +111,7 @@ public class EditCursor : MonoBehaviour
 	}
 	
 	// マウスカーソル位置のブロックを取得
-	private bool GetCuesorPoint(out Vector3 position, out Vector3 normal) {
+	private bool GetCursorPoint(out Vector3 position, out Vector3 normal) {
 		var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 		RaycastHit hit;
 		if (Physics.Raycast(ray, out hit, 100)) {

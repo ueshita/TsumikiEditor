@@ -7,7 +7,9 @@ using System;
 public class BlockGroup
 {
 	private Dictionary<int, Block> blocks = new Dictionary<int, Block>();
-	private BlockMeshMerger meshMerger = new BlockMeshMerger();
+	private BlockMeshMerger surfaceMeshMerger = new BlockMeshMerger();
+	private BlockMeshMerger guideMeshMerger = new BlockMeshMerger();
+	private BlockMeshMerger routeMeshMerger = new BlockMeshMerger();
 
 	// ブロック追加
 	public void AddBlock(Block block) {
@@ -48,6 +50,18 @@ public class BlockGroup
 		return blocks;
 	}
 
+	// 移動可能な全ブロックを取得
+	public Block[] GetMovableBlocks() {
+		List<Block> resultBlocks = new List<Block>();
+		foreach (var keyValue in this.blocks) {
+			Block block = keyValue.Value;
+			if (block.IsMovable(this)) {
+				resultBlocks.Add(block);
+			}
+		}
+		return resultBlocks.ToArray();
+	}
+
 	// ブロック数を取得
 	public int GetNumBlocks() {
 		return this.blocks.Count;
@@ -55,25 +69,30 @@ public class BlockGroup
 
 	// メッシュの更新
 	public void UpdateMesh() {
-		this.meshMerger.Clear();
-		foreach (var block in this.blocks) {
-			block.Value.WriteToMesh(this, this.meshMerger);
-			block.Value.WriteToGuideMesh(this, this.meshMerger);
+		this.surfaceMeshMerger.Clear();
+		this.guideMeshMerger.Clear();
+		this.routeMeshMerger.Clear();
+		foreach (var keyValue in this.blocks) {
+			var block = keyValue.Value;
+			block.WriteToMesh(this, this.surfaceMeshMerger);
+			block.WriteToGuideMesh(this, this.guideMeshMerger);
+			block.WriteToRouteMesh(this, this.routeMeshMerger);
 		}
 	}
 	public Mesh GetSurfaceMesh() {
 		Mesh mesh = new Mesh();
 		mesh.name = "SurfaceBlocks";
-		mesh.vertices = this.meshMerger.vertexPos.ToArray();
-		mesh.uv       = this.meshMerger.vertexUv.ToArray();
-		mesh.SetIndices(this.meshMerger.triangles.ToArray(), MeshTopology.Triangles, 0);
+		mesh.vertices = this.surfaceMeshMerger.vertexPos.ToArray();
+		mesh.uv       = this.surfaceMeshMerger.vertexUv.ToArray();
+		mesh.SetIndices(this.surfaceMeshMerger.triangles.ToArray(), MeshTopology.Triangles, 0);
 		mesh.RecalculateNormals();
 		mesh.RecalculateBounds();
 		return mesh;
 	}
+
 	public Mesh GetWireMesh() {
-		int trianglesCount = this.meshMerger.triangles.Count / 3;
-		var tris = this.meshMerger.triangles;
+		int trianglesCount = this.surfaceMeshMerger.triangles.Count / 3;
+		var tris = this.surfaceMeshMerger.triangles;
 		List<int> lines = new List<int>(trianglesCount * 6);
 
 		for (int i = 0; i < trianglesCount; i++) {
@@ -100,16 +119,24 @@ public class BlockGroup
 
 		Mesh mesh = new Mesh();
 		mesh.name = "WireBlocks";
-		mesh.vertices = this.meshMerger.vertexPos.ToArray();
+		mesh.vertices = this.surfaceMeshMerger.vertexPos.ToArray();
 		mesh.SetIndices(lines.ToArray(), MeshTopology.Lines, 0);
 		mesh.RecalculateBounds();
 		return mesh;
 	}
-	public Mesh GetColliderMesh() {
+	public Mesh GetGuideMesh() {
 		Mesh mesh = new Mesh();
 		mesh.name = "ColliderBlocks";
-		mesh.vertices = this.meshMerger.guideVertexPos.ToArray();
-		mesh.SetIndices(this.meshMerger.guideTriangles.ToArray(), MeshTopology.Triangles, 0);
+		mesh.vertices = this.guideMeshMerger.vertexPos.ToArray();
+		mesh.SetIndices(this.guideMeshMerger.triangles.ToArray(), MeshTopology.Triangles, 0);
+		mesh.RecalculateBounds();
+		return mesh;
+	}
+	public Mesh GetRouteMesh() {
+		Mesh mesh = new Mesh();
+		mesh.name = "RoutePanels";
+		mesh.vertices = this.routeMeshMerger.vertexPos.ToArray();
+		mesh.SetIndices(this.routeMeshMerger.triangles.ToArray(), MeshTopology.Triangles, 0);
 		mesh.RecalculateBounds();
 		return mesh;
 	}
@@ -139,14 +166,9 @@ public class BlockMeshMerger
 	public List<Vector2> vertexUv = new List<Vector2>();
 	public List<int> triangles = new List<int>();
 	
-	public List<Vector3> guideVertexPos = new List<Vector3>();
-	public List<int> guideTriangles = new List<int>();
-
 	public void Clear() {
 		this.vertexPos.Clear();
 		this.vertexUv.Clear();
 		this.triangles.Clear();
-		this.guideVertexPos.Clear();
-		this.guideTriangles.Clear();
 	}
 };

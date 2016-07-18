@@ -8,7 +8,13 @@ public partial class EditManager : MonoBehaviour
 {
 	public enum Tool {
 		Pen, Eraser, Brush, Spuit,
-		PointSelector, RectSelector
+		PointSelector, RectSelector, 
+		RoutePath
+	}
+
+	public enum CoordinateSystem {
+		LeftHanded,
+		RightHanded,
 	}
 
 	public static EditManager Instance {get; private set;}
@@ -17,10 +23,12 @@ public partial class EditManager : MonoBehaviour
 	public EditLayer CurrentLayer {get {return this.Layers[this.currentLayerIndex];}}
 	int currentLayerIndex = 0;
 	
-	public EditSelector Selector {get; private set;}
-	public EditGrid Grid {get; private set;}
+	public Selector Selector {get; private set;}
+	public Grid Grid {get; private set;}
 	public EditCursor Cursor {get; private set;}
+	public RoutePath routePath {get; private set;}
 
+	private CoordinateSystem coordinateSystem = CoordinateSystem.RightHanded;
 	private Tool tool = Tool.Pen;
 	private string toolBlock = "cube";
 	private int toolChip = 0;
@@ -37,7 +45,7 @@ public partial class EditManager : MonoBehaviour
 		
 		var gridObj = new GameObject("Grid");
 		gridObj.transform.parent = this.transform;
-		this.Grid = gridObj.AddComponent<EditGrid>();
+		this.Grid = gridObj.AddComponent<Grid>();
 		
 		var cursorObj = new GameObject("EditCursor");
 		cursorObj.transform.parent = EditManager.Instance.transform;
@@ -45,18 +53,25 @@ public partial class EditManager : MonoBehaviour
 		
 		var selectionObj = new GameObject("Selector");
 		selectionObj.transform.parent = this.transform;
-		this.Selector = selectionObj.AddComponent<EditSelector>();
+		this.Selector = selectionObj.AddComponent<Selector>();
+		
+		var routePathObj = new GameObject("RoutePath");
+		selectionObj.transform.parent = this.transform;
+		this.routePath = routePathObj.AddComponent<RoutePath>();
+		routePathObj.SetActive(false);
 	}
+
 	void Start() {
 		this.Reset();
 
-		FileManager.Load("TestData/kaidan.tkd");
-		//FileManager.Load("TestData/test.tkd");
+		//FileManager.Load("TestData/test02.tkd");
+		//FileManager.Load("TestData/test01.tkd");
 	}
 	
 	public void SetTool(Tool tool) {
 		this.tool = tool;
 
+		// カーソルにツールをセットする
 		switch (this.tool) {
 		case Tool.Pen:
 			this.Cursor.SetBlock(this.toolBlock);
@@ -67,8 +82,26 @@ public partial class EditManager : MonoBehaviour
 			break;
 		case Tool.Brush:
 		case Tool.Spuit:
+		case Tool.RoutePath:
 			this.Cursor.SetPanel();
 			break;
+		}
+		
+		// 選択以外のツールならセレクタをクリアする
+		switch (this.tool) {
+		case Tool.PointSelector:
+		case Tool.RectSelector:
+			break;
+		default:
+			this.Selector.ReleaseBlocks();
+			this.Selector.Clear();
+			break;
+		}
+
+		if (this.tool == Tool.RoutePath) {
+			this.routePath.SetEnabled(true);
+		} else {
+			this.routePath.SetEnabled(false);
 		}
 	}
 	public Tool GetTool() {
@@ -116,5 +149,20 @@ public partial class EditManager : MonoBehaviour
 	public void Reset() {
 		this.Clear();
 		this.AddLayer("Layer01");
+	}
+	
+	public bool IsLeftHanded() {
+		return this.coordinateSystem == CoordinateSystem.LeftHanded;
+	}
+	public bool IsRightHanded() {
+		return this.coordinateSystem == CoordinateSystem.RightHanded;
+	}
+	public Vector3 ToWorldCoordinate(Vector3 position) {
+		if (this.IsRightHanded()) {
+			position.z = -position.z;
+			return position;
+		} else {
+			return position;
+		}
 	}
 }

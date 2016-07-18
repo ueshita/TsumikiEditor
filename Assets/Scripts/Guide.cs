@@ -1,7 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class EditGuide : MonoBehaviour
+// ガイド表示（選択領域とかカーソルを表示する）
+public class Guide : MonoBehaviour
 {
 	private MeshFilter surfaceMeshFilter;
 	private MeshRenderer surfaceRenderer;

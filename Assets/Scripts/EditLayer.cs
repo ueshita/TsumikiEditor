@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Xml;
 
+// レイヤー内のブロックを表示するクラス
 public class EditLayer : MonoBehaviour
 {
 	protected BlockGroup blockGroup = new BlockGroup();
@@ -79,7 +80,7 @@ public class EditLayer : MonoBehaviour
 		this.blockGroup.UpdateMesh();
 
 		this.GetComponent<MeshFilter>().sharedMesh = this.blockGroup.GetSurfaceMesh();
-		this.GetComponent<MeshCollider>().sharedMesh = this.blockGroup.GetColliderMesh();
+		this.GetComponent<MeshCollider>().sharedMesh = this.blockGroup.GetGuideMesh();
 
 		this.dirtyMesh = false;
 	}

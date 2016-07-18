@@ -6,9 +6,9 @@ using System.Xml;
 using System.Text;
 using System.Windows.Forms;
 
-public class EditSelector : MonoBehaviour
+public class Selector : MonoBehaviour
 {
-	EditGuide guide;
+	Guide guide;
 	BlockGroup guideBlocks = new BlockGroup();
 
 	CaptureMode captureMode;
@@ -36,7 +36,7 @@ public class EditSelector : MonoBehaviour
 		var guideObj = new GameObject();
 		guideObj.name = "Guide";
 		guideObj.transform.parent = this.transform;
-		this.guide = guideObj.AddComponent<EditGuide>();
+		this.guide = guideObj.AddComponent<Guide>();
 		this.SetColorMode(ColorMode.Selection);
 
 		var captureObj = new GameObject();
@@ -60,7 +60,7 @@ public class EditSelector : MonoBehaviour
 	void LateUpdate() {
 		if (this.dirtyMesh) {
 			this.guideBlocks.UpdateMesh();
-			this.guide.SetMesh(this.guideBlocks.GetColliderMesh(), this.guideBlocks.GetWireMesh());
+			this.guide.SetMesh(this.guideBlocks.GetGuideMesh(), this.guideBlocks.GetWireMesh());
 			this.dirtyMesh = false;
 		}
 	}

@@ -5,6 +5,7 @@ using System.Xml;
 using System.Text;
 using System.Windows.Forms;
 
+// Alias Wavefront OBJフォーマット向けのエクスポータ 
 public static class OBJExporter
 {
 	public static void Export(string path, BlockGroup blockGroup) {

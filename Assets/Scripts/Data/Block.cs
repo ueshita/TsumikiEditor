@@ -143,7 +143,7 @@ public class Block
 			for (int j = 0; j < vertexPos.Length; j++) {
 				Vector3 localPosition = vertexPos[j];
 				meshMerger.vertexPos.Add(this.position + EditUtil.RotatePosition(localPosition, this.direction));
-				meshMerger.vertexUv.Add(chip.ApplyUV(vertexUv[j]));
+				meshMerger.vertexUv.Add(chip.ApplyUV(vertexUv[j], (BlockDirection)i, this.position.y));
 			}
 			int[] indices = mesh.GetIndices(0);
 			for (int j = 0; j < indices.Length; j++) {
@@ -165,19 +165,63 @@ public class Block
 			// 頂点が書き出されていなければここで書き出す
 			if (!vertexHasWrote) {
 				for (int j = 0; j < EditUtil.cubeVertices.Length; j++) {
-					mesh.guideVertexPos.Add(this.position + EditUtil.cubeVertices[j]);
+					mesh.vertexPos.Add(this.position + EditUtil.cubeVertices[j]);
 				}
 				vertexHasWrote = true;
 			}
 
-			int offset = mesh.guideVertexPos.Count - EditUtil.cubeVertices.Length;
-			mesh.guideTriangles.Add(offset + EditUtil.cubeQuadIndices[i * 4 + 0]);
-			mesh.guideTriangles.Add(offset + EditUtil.cubeQuadIndices[i * 4 + 1]);
-			mesh.guideTriangles.Add(offset + EditUtil.cubeQuadIndices[i * 4 + 2]);
-			mesh.guideTriangles.Add(offset + EditUtil.cubeQuadIndices[i * 4 + 0]);
-			mesh.guideTriangles.Add(offset + EditUtil.cubeQuadIndices[i * 4 + 2]);
-			mesh.guideTriangles.Add(offset + EditUtil.cubeQuadIndices[i * 4 + 3]);
+			int offset = mesh.vertexPos.Count - EditUtil.cubeVertices.Length;
+			mesh.triangles.Add(offset + EditUtil.cubeQuadIndices[i * 4 + 0]);
+			mesh.triangles.Add(offset + EditUtil.cubeQuadIndices[i * 4 + 1]);
+			mesh.triangles.Add(offset + EditUtil.cubeQuadIndices[i * 4 + 2]);
+			mesh.triangles.Add(offset + EditUtil.cubeQuadIndices[i * 4 + 0]);
+			mesh.triangles.Add(offset + EditUtil.cubeQuadIndices[i * 4 + 2]);
+			mesh.triangles.Add(offset + EditUtil.cubeQuadIndices[i * 4 + 3]);
 		}
+	}
+
+	// ルート用メッシュを出力
+	public void WriteToRouteMesh(BlockGroup group, BlockMeshMerger mesh) {
+		if (!this.IsMovable(group)) {
+			return;
+		}
+
+		int offset = mesh.vertexPos.Count;
+		for (int j = 0; j < 4; j++) {
+			int index = EditUtil.ReversePanelVertexIndex(j, this.direction);
+			Vector3 vertex = EditUtil.panelVertices[index];
+			vertex = EditUtil.RotatePosition(vertex, this.direction);
+			vertex.y = this.shape.routePanel[index] * 0.5f - 0.25f;
+			mesh.vertexPos.Add(this.position + vertex);
+		}
+
+		if (this.direction == BlockDirection.Xplus || 
+			this.direction == BlockDirection.Xminus
+		){
+			mesh.triangles.Add(offset + 0);
+			mesh.triangles.Add(offset + 1);
+			mesh.triangles.Add(offset + 3);
+			mesh.triangles.Add(offset + 0);
+			mesh.triangles.Add(offset + 3);
+			mesh.triangles.Add(offset + 2);
+		} else {
+			mesh.triangles.Add(offset + 0);
+			mesh.triangles.Add(offset + 1);
+			mesh.triangles.Add(offset + 2);
+			mesh.triangles.Add(offset + 1);
+			mesh.triangles.Add(offset + 3);
+			mesh.triangles.Add(offset + 2);
+		}
+	}
+	
+	// 上に4ブロック分のスペースがあるか
+	public bool IsMovable(BlockGroup group) {
+		for (int i = 1; i <= 4; i++) {
+			if (group.GetBlock(this.position + new Vector3(0, 0.5f * i, 0)) != null) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	// 書き込み
@@ -190,12 +234,14 @@ public class Block
 		string[] tileStrArray = Array.ConvertAll<int, string>(this.textureChips, (value) => {return value.ToString();});
 		node.SetAttribute("tile", string.Join(",", tileStrArray));
 	}
+
 	// 読み込み
 	public void Deserialize(XmlElement node) {
 		if (node.HasAttribute("type")) {
 			string typeName = node.GetAttribute("type");
 			this.shape = BlockShape.Find(typeName);
-		} else {
+		}
+		if (this.shape == null) {
 			this.shape = BlockShape.Find("cube");
 		}
 

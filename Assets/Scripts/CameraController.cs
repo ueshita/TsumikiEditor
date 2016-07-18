@@ -4,8 +4,8 @@ using System;
 
 public class CameraController : MonoBehaviour
 {
-	private float elevation = 30.0f;		// 方位角
-	private float azimuth   = 30.0f;		// 仰角
+	private float elevation = 30.0f;		// 仰角
+	private float azimuth   = 180.0f;		// 方位角
 	private float distance  = 12.0f;		// 注視点からの距離
 	
 	private float lockedElevation = 30.0f;	// 回転開始時の方位角
@@ -61,9 +61,10 @@ public class CameraController : MonoBehaviour
 
 	public void OnScroll(Vector2 delta) {
 		this.distance -= delta.y * 1.0f;
+		this.distance = Mathf.Clamp(this.distance, 2.0f, 40.0f);
 	}
 
-	void Update() {
+	void LateUpdate() {
 		this.transform.position = this.CalcPosition();
 		this.transform.LookAt(this.targetPosition);
 	}

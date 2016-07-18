@@ -5,27 +5,31 @@ using System.Collections.Generic;
 
 public class BlockPalette : MonoBehaviour
 {
-	public GameObject nodePrefab;
+	public RectTransform nodePrefab;
 	private List<Image> listItems = new List<Image>();
 	public int value {get; private set;}
 
 	void Start() {
 		var viewport = this.transform.FindChild("Viewport");
 		var content = viewport.transform.FindChild("Content") as RectTransform;
-		Vector2 offsetPosition = new Vector2(0, content.sizeDelta.y / 2);
-
+		
+		const float buttonHeight = 30.0f;
+		content.sizeDelta = new Vector2(content.sizeDelta.x, BlockShape.palette.Length * buttonHeight);
+		Vector2 offsetPosition = new Vector2(0, content.rect.height / 2);
+		
 		for (int i = 0; i < BlockShape.palette.Length; i++) {
 			int index = i;
 
-			var node = Instantiate(nodePrefab).transform as RectTransform;
-			node.SetParent(content);
-
+			var node = GameObject.Instantiate(nodePrefab) as RectTransform;
+			node.SetParent(content, false);
+			node.anchoredPosition = offsetPosition - new Vector2(0, buttonHeight / 2);
+			node.sizeDelta = new Vector2(0, buttonHeight);
+			offsetPosition.y -= buttonHeight;
+			
 			// アイテムルート
 			var imageView = node.GetComponent<Image>();
-			imageView.rectTransform.anchoredPosition = offsetPosition
-				- new Vector2(0, imageView.rectTransform.sizeDelta.y / 2);
-			offsetPosition.y -= imageView.rectTransform.sizeDelta.y;
-
+			
+			
 			// ハイライト
 			var highlightView = node.FindChild("Highlight").GetComponent<Image>();
 			highlightView.enabled = false;

@@ -24,10 +24,27 @@ public class TexturePalette : MonoBehaviour, IPointerClickHandler
 			this.uv1 = uv1;
 			this.uv2 = uv2;
 		}
-		public Vector2 ApplyUV(Vector2 uv) {
+		public Vector2 ApplyUV(Vector2 uv, BlockDirection direction, float height) {
 			return new Vector2(
-				Mathf.Lerp(uv1.x, uv2.x, uv.x), 
-				Mathf.Lerp(uv1.y, uv2.y, uv.y));
+				uv1.x + (uv2.x - uv1.x) *  uv.x, 
+				uv1.y + (uv2.y - uv1.y) *  uv.y);
+			/*if (direction == BlockDirection.Yplus || direction == BlockDirection.Yminus) {
+				return new Vector2(
+					uv1.x + (uv2.x - uv1.x) *  uv.x, 
+					uv1.y + (uv2.y - uv1.y) *  uv.y);
+			} else {
+				float uarea = uv2.x - uv1.x;
+				float varea = uv2.y - uv1.y;
+				if (height - Mathf.Floor(height) < 0.5f) {
+					return new Vector2(
+						(uv1.x + uarea * uv.x), 
+						(uv1.y + varea * 0.5f * uv.y));
+				} else {
+					return new Vector2(
+						(uv1.x +  uarea * uv.x), 
+						(uv1.y + varea * 0.5f * uv.y + varea * 0.5f));
+				}
+			}*/
 		}
 	}
 
