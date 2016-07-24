@@ -232,4 +232,7 @@ public struct Vector3i
 		this.y = Mathf.RoundToInt(y);
 		this.z = Mathf.RoundToInt(z);
 	}
+	public static Vector3i operator+(Vector3i lhs, Vector3i rhs) {
+		return new Vector3i(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z);
+	}
 }
