@@ -7,6 +7,7 @@ using System.Xml;
 public class EditLayer : MonoBehaviour
 {
 	protected BlockGroup blockGroup = new BlockGroup();
+	private ModelGroup modelGroup = new ModelGroup();
 	bool dirtyMesh = false;
 	
 	void Start() {
@@ -34,10 +35,9 @@ public class EditLayer : MonoBehaviour
 	}
 
 	// ブロックの追加
-	public Block AddBlock(Block block) {
+	public void AddBlock(Block block) {
 		this.blockGroup.AddBlock(block);
 		this.dirtyMesh = true;
-		return block;
 	}
 	
 	// ブロックの追加(複数)
@@ -75,6 +75,42 @@ public class EditLayer : MonoBehaviour
 	public BlockGroup GetBlockGroup() {
 		return this.blockGroup;
 	}
+	
+	public ModelGroup GetModelGroup() {
+		return this.modelGroup;
+	}
+	
+	// モデルの追加
+	public void AddModel(Model model) {
+		this.modelGroup.AddModel(model);
+	}
+	
+	// モデルの複数(複数)
+	public void AddModels(Model[] models) {
+		foreach (var model in models) {
+			this.modelGroup.AddModel(model);
+		}
+	}
+
+	// モデルの削除
+	public void RemoveModel(Model model, bool hiding) {
+		this.modelGroup.RemoveModel(model, hiding);
+	}
+
+	// モデルの削除(複数)
+	public void RemoveModels(Model[] models, bool hiding) {
+		foreach (var model in models) {
+			this.modelGroup.RemoveModel(model, hiding);
+		}
+	}
+
+	public Model GetModel(GameObject gameObject) {
+		return modelGroup.GetModel(gameObject);
+	}
+
+	public Model GetModel(Vector3 position) {
+		return modelGroup.GetModel(position);
+	}
 
 	protected void UpdateMesh() {
 		this.blockGroup.UpdateMesh();
@@ -87,10 +123,12 @@ public class EditLayer : MonoBehaviour
 
 	public void Serialize(XmlElement node) {
 		this.blockGroup.Serialize(node);
+		this.modelGroup.Serialize(node);
 	}
 
 	public void Deserialize(XmlElement node) {
 		this.blockGroup.Deserialize(node);
+		this.modelGroup.Deserialize(node);
 		this.dirtyMesh = true;
 	}
 }

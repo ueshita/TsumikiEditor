@@ -5,6 +5,13 @@ using System.Collections.Generic;
 
 public class EditUtil
 {
+	public static int PositionToHashCode(Vector3 position) {
+		int x = Mathf.RoundToInt(position.x) + 512;
+		int y = Mathf.RoundToInt(position.y * 2) + 512;
+		int z = Mathf.RoundToInt(position.z) + 512;
+		return ((z & 0x3f) << 20) | ((y & 0x3f) << 10) | (x & 0x3f);
+	}
+
 	public static readonly Vector3[] panelVertices = new Vector3[] {
 		new Vector3(-0.5f, 0.0f,  0.5f),
 		new Vector3( 0.5f, 0.0f,  0.5f), 

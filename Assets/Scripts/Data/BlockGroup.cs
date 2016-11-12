@@ -34,7 +34,7 @@ public class BlockGroup
 	
 	// 位置指定でブロックの取得
 	public Block GetBlock(Vector3 position) {
-		int key = Block.CalcHashCode(position);
+		int key = EditUtil.PositionToHashCode(position);
 		Block value;
 		if (this.blocks.TryGetValue(key, out value)) {
 			return value;
@@ -50,12 +50,12 @@ public class BlockGroup
 		return blocks;
 	}
 
-	// 移動可能な全ブロックを取得
-	public Block[] GetMovableBlocks() {
+	// ユニットが移動可能な全ブロックを取得
+	public Block[] GetEnterableBlocks() {
 		List<Block> resultBlocks = new List<Block>();
 		foreach (var keyValue in this.blocks) {
 			Block block = keyValue.Value;
-			if (block.IsMovable(this)) {
+			if (block.IsEnterable(this)) {
 				resultBlocks.Add(block);
 			}
 		}

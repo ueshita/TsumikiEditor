@@ -5,26 +5,34 @@ using System;
 using System.IO;
 using System.Xml;
 using System.Text;
-using System.Windows.Forms;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 public static class FileUtil
 {
-	public static void Write(BinaryWriter writer, Vector3 vector) {
+	public static void Write(this BinaryWriter writer, Vector3 vector) {
 		writer.Write(vector.x);
 		writer.Write(vector.y);
 		writer.Write(vector.z);
 	}
-	public static void Write(BinaryWriter writer, Vector3i vector) {
+	public static void Write(this BinaryWriter writer, Vector3i vector) {
 		writer.Write(vector.x);
 		writer.Write(vector.y);
 		writer.Write(vector.z);
 	}
-	public static void Write(BinaryWriter writer, Color color) {
+	public static void Write(this BinaryWriter writer, Color color) {
 		writer.Write(color.r);
 		writer.Write(color.g);
 		writer.Write(color.b);
 		writer.Write(color.a);
+	}
+	public static Vector3i ApplyRightHanded(Vector3i vector) {
+		vector.z = -vector.z;
+		return vector;
+	}
+	public static Vector3 ApplyRightHanded(Vector3 vector) {
+		vector.z = -vector.z;
+		return vector;
 	}
 }
 
@@ -79,10 +87,43 @@ public static class E3DExporter
 
 	class FieldPanel {
 		public int id;
+		public Vector3 originalPosition;
 		public Vector3i position;
 		public Vector3[] vertices;
 		public bool reversed;
-		public List<FieldPanel> routePath;
+		public List<FieldPanel> paths;
+
+		public bool CanMoveTo(FieldPanel target, BlockGroup blockGroup) {
+			bool movable = true;
+			if (target.position.y == this.position.y) {
+				// 同じ高さのパネル
+			} else if (target.position.y > this.position.y) {
+				// 上の方のパネル
+				float dy = target.originalPosition.y;
+				float sy = this.originalPosition.y;
+				for (float j = sy + 0.5f; j <= dy + 1.5f; j += 0.5f) {
+					Block block = blockGroup.GetBlock(
+						new Vector3(this.originalPosition.x, j, this.originalPosition.z));
+					if (block != null) {
+						movable = false;
+						break;
+					}
+				}
+			} else if (target.position.y < this.position.y) {
+				// 下の方のパネル
+				float dy = target.originalPosition.y;
+				float sy = this.originalPosition.y;
+				for (float j = sy + 1.5f; j >= dy + 0.5f; j -= 0.5f) {
+					Block block = blockGroup.GetBlock(
+						new Vector3(target.originalPosition.x, j, target.originalPosition.z));
+					if (block != null) {
+						movable = false;
+						break;
+					}
+				}
+			}
+			return movable;
+		}
 	}
 
 	class FieldPanelGroup {
@@ -90,7 +131,16 @@ public static class E3DExporter
 
 		public FieldPanelGroup(Mesh mesh, Block[] blocks, Vector3 offset) {
 			for (int i = 0; i < blocks.Length; i++) {
+				
+				if (blocks[i].position.x < 0 || 
+					blocks[i].position.y < 0 || 
+					blocks[i].position.z > 0) {
+					// マイナス位置にあるパネルは除外
+					continue;
+				}
+
 				FieldPanel fieldPanel = new FieldPanel();
+				fieldPanel.originalPosition = blocks[i].position;
 				fieldPanel.position.x = Mathf.RoundToInt(blocks[i].position.x);
 				fieldPanel.position.y = Mathf.RoundToInt(blocks[i].position.y * 2.0f) + 1;
 				fieldPanel.position.z = Mathf.RoundToInt(blocks[i].position.z);
@@ -116,21 +166,21 @@ public static class E3DExporter
 			});
 			
 			// IDを割り当て
-			for (int i = 0; i < blocks.Length; i++) {
+			for (int i = 0; i < this.panels.Count; i++) {
 				this.panels[i].id = i;
 			}
 		}
 
 		public void ApplyRightHanded() {
 			foreach (var panel in this.panels) {
-				panel.position.z = -panel.position.z;
+				panel.position = FileUtil.ApplyRightHanded(panel.position);
 				for (int j = 0; j < 4; j++) {
-					panel.vertices[j].z = -panel.vertices[j].z;
+					panel.vertices[j] = FileUtil.ApplyRightHanded(panel.vertices[j]);
 				}
 			}
 		}
 
-		public void ApplyRoutePath(BlockGroup blockGroup) {
+		public void ApplyRoutePath(BlockGroup blockGroup, RoutePath routePath) {
 			Vector3i[] offsets = {
 				new Vector3i( 0, 0,  1),
 				new Vector3i( 0, 0, -1),
@@ -139,46 +189,25 @@ public static class E3DExporter
 			};
 
 			foreach (var panel in this.panels) {
-				panel.routePath = new List<FieldPanel>();
+				panel.paths = new List<FieldPanel>();
 
 				for (int i = 0; i < 4; i++) {
 					Vector3i key = panel.position + offsets[i];
+					// 隣接のセルを探す
 					var neighbourPanels = this.panels.FindAll(delegate(FieldPanel a) {
 						return a.position.x == key.x && a.position.z == key.z;
 					});
-
 					foreach (var target in neighbourPanels) {
-						bool movable = true;
-						if (target.position.y == panel.position.y) {
-							// 同じ高さのパネル
-						} else if (target.position.y > panel.position.y) {
-							// 上の方のパネル
-							float dy = (target.position.y - 1) * 0.5f;
-							float sy = ( panel.position.y - 1) * 0.5f;
-							for (float j = sy + 0.5f; j <= dy + 1.5f; j += 0.5f) {
-								Block block = blockGroup.GetBlock(
-									new Vector3(panel.position.x, j, panel.position.z));
-								if (block != null) {
-									movable = false;
-									break;
-								}
-							}
-						} else if (target.position.y < panel.position.y) {
-							// 下の方のパネル
-							float dy = (target.position.y - 1) * 0.5f;
-							float sy = ( panel.position.y - 1) * 0.5f;
-							for (float j = sy + 1.5f; j >= dy + 0.5f; j -= 0.5f) {
-								Block block = blockGroup.GetBlock(
-									new Vector3(target.position.x, j, target.position.z));
-								if (block != null) {
-									movable = false;
-									break;
-								}
-							}
+						if (panel.CanMoveTo(target, blockGroup)) {
+							panel.paths.Add(target);
 						}
-						
-						if (movable) {
-							panel.routePath.Add(target);
+					}
+				}
+				var paths = routePath.FindPaths(panel.originalPosition);
+				foreach (var path in paths) {
+					foreach (var target in this.panels) {
+						if (target.originalPosition == path) {
+							panel.paths.Add(target);
 						}
 					}
 				}
@@ -190,22 +219,27 @@ public static class E3DExporter
 			writer.Write(this.panels.Count);
 			
 			foreach (var panel in this.panels) {
-				FileUtil.Write(writer, panel.position);
-				FileUtil.Write(writer, panel.vertices[0]);
-				FileUtil.Write(writer, panel.vertices[1]);
-				FileUtil.Write(writer, panel.vertices[2]);
-				FileUtil.Write(writer, panel.vertices[3]);
+				// パネルの位置
+				writer.Write(panel.position);
+				
+				// パネルの頂点
+				writer.Write(panel.vertices[0]);
+				writer.Write(panel.vertices[1]);
+				writer.Write(panel.vertices[2]);
+				writer.Write(panel.vertices[3]);
+				// パネルを三角形に分割した際の反転情報
 				writer.Write(panel.reversed ? 1 : 0);
 				
-				writer.Write(panel.routePath.Count);
-				foreach (var target in panel.routePath) {
+				// ルートパス
+				writer.Write(panel.paths.Count);
+				foreach (var target in panel.paths) {
 					writer.Write(target.id);
 				}
 			}
 		}
 	}
 
-	public static void Export(string path, BlockGroup blockGroup) {
+	public static void Export(string path, BlockGroup blockGroup, ModelGroup modelGroup) {
 		
 		bool toRightHanded = EditManager.Instance.IsRightHanded();
 		Vector3 offset = new Vector3(0.5f, 0.25f, -0.5f);
@@ -213,7 +247,7 @@ public static class E3DExporter
 		WriteModelFile(path, blockGroup, offset, toRightHanded);
 		
 		string metaFilePath = Path.ChangeExtension(path, ".dat");
-		WriteMetaFile(metaFilePath, blockGroup, offset, toRightHanded);
+		WriteMetaFile(metaFilePath, blockGroup, modelGroup, offset, toRightHanded);
 	}
 
 	private static void WriteModelFile(string path, BlockGroup blockGroup, Vector3 offset, bool toRightHanded) {
@@ -236,8 +270,8 @@ public static class E3DExporter
 			}
 			if (toRightHanded) {
 				for (int i = 0; i < vertices.Length; i++) {
-					vertices[i].position.z = -vertices[i].position.z;
-					vertices[i].normal.z = -vertices[i].normal.z;
+					vertices[i].position = FileUtil.ApplyRightHanded(vertices[i].position);
+					vertices[i].normal = FileUtil.ApplyRightHanded(vertices[i].normal);
 				}
 			}
 		}
@@ -264,8 +298,8 @@ public static class E3DExporter
 		writer.Write(vertexCount * StaticMeshVertex.GetSize());		// VertexDataSize
 		writer.Write(indexCount * 2);								// IndexDataSize
 
-		FileUtil.Write(writer, mesh.bounds.center);
-		FileUtil.Write(writer, mesh.bounds.size);
+		writer.Write(mesh.bounds.center);
+		writer.Write(mesh.bounds.size);
 		
 		// AttribInfo
 		var attribs = new ShaderAttrib[]{
@@ -278,10 +312,10 @@ public static class E3DExporter
 		}
 
 		// MaterialInfo
-		FileUtil.Write(writer, new Color(0.8f, 0.8f, 0.8f, 1.0f));	// diffuseColor
-		FileUtil.Write(writer, new Color(0.4f, 0.4f, 0.4f, 1.0f));	// ambientColor
-		FileUtil.Write(writer, new Color(0.0f, 0.0f, 0.0f, 1.0f));	// emissionColor
-		FileUtil.Write(writer, new Color(0.0f, 0.0f, 0.0f, 1.0f));	// specularColor
+		writer.Write(new Color(0.8f, 0.8f, 0.8f, 1.0f));	// diffuseColor
+		writer.Write(new Color(0.4f, 0.4f, 0.4f, 1.0f));	// ambientColor
+		writer.Write(new Color(0.0f, 0.0f, 0.0f, 1.0f));	// emissionColor
+		writer.Write(new Color(0.0f, 0.0f, 0.0f, 1.0f));	// specularColor
 		writer.Write(0.0f);									// shiniess
 		writer.Write(-1);									// TextureId0
 		writer.Write(-1);									// TextureId1
@@ -308,30 +342,76 @@ public static class E3DExporter
 		File.WriteAllBytes(path, mem.ToArray());
 	}
 	
-	private static void WriteMetaFile(string path, BlockGroup blockGroup, Vector3 offset, bool toRightHanded) {
+	private static void WriteMetaFile(string path, 
+		BlockGroup blockGroup, ModelGroup modelGroup, 
+		Vector3 offset, bool toRightHanded)
+	{
 		Mesh mesh = blockGroup.GetRouteMesh();
-		Block[] blocks = blockGroup.GetMovableBlocks();
-		var fieldPanels = new FieldPanelGroup(mesh, blocks, offset);
-		fieldPanels.ApplyRoutePath(blockGroup);
-
-		var mem = new MemoryStream();
-		var writer = new BinaryWriter(mem);
+		Block[] blocks = blockGroup.GetEnterableBlocks();
 		
-		Vector3[] positions = mesh.vertices;
+		// モデルを見て移動可能かどうかをチェックする
+		blocks = blocks.Where(block => {
+			var model = modelGroup.GetModel(block.position);
+			return model == null || model.shape.enterable;
+		}).ToArray();
+
+		var fieldPanels = new FieldPanelGroup(mesh, blocks, offset);
+		fieldPanels.ApplyRoutePath(blockGroup, EditManager.Instance.RoutePath);
+		
+		// バウンディングボックス
 		Vector3 minpos = mesh.bounds.min + offset;
 		Vector3 maxpos = mesh.bounds.max + offset;
-		
+				
 		// 座標系反転処理
 		if (toRightHanded) {
 			fieldPanels.ApplyRightHanded();
-			float z = -minpos.z;
-			minpos.z = -maxpos.z;
+			minpos = FileUtil.ApplyRightHanded(minpos);
+			maxpos = FileUtil.ApplyRightHanded(maxpos);
+			float z = minpos.z;
+			minpos.z = maxpos.z;
 			maxpos.z = z;
 		}
 
-		FileUtil.Write(writer, minpos);
-		FileUtil.Write(writer, maxpos);
+		var mem = new MemoryStream();
+		var writer = new BinaryWriter(mem);
+
+		writer.Write("E3MT".ToArray());	// Identifier
+		writer.Write(2);				// Version
+
+		// バウンディングボックス
+		writer.Write(minpos);
+		writer.Write(maxpos);
+		
+		// 移動パネル
 		fieldPanels.Write(writer);
+
+		// 当たり判定ブロック
+		Block[] colliderBlocks = blockGroup.GetAllBlocks();
+		writer.Write(colliderBlocks.Length);
+		Vector3 colliderOffset = new Vector3(0.5f, 0.25f, 0.5f);
+		foreach (var block in colliderBlocks) {
+			Vector3 position = block.position;
+			if (toRightHanded) {
+				position = FileUtil.ApplyRightHanded(position);
+			}
+			position += colliderOffset;
+			writer.Write(position);
+		}
+
+		// 3Dモデル配置
+		Model[] models = modelGroup.GetAllModels();
+		writer.Write(models.Length);
+		foreach (var model in models) {
+			Vector3 position = model.position;
+			if (toRightHanded) {
+				position = FileUtil.ApplyRightHanded(position);
+			}
+			writer.Write(model.shape.id);
+			writer.Write(position);
+			writer.Write(model.offset);
+			writer.Write((float)model.rotation);
+			writer.Write(model.shape.scale * model.scale);
+		}
 
 		File.WriteAllBytes(path, mem.ToArray());
 	}

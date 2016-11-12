@@ -26,30 +26,19 @@ public class Block
 		new Vector3( 0.0f, -0.5f,  0.0f),
 	};
 	
-	public static int CalcHashCode(Vector3 position) {
-		int x = Mathf.RoundToInt(position.x) + 512;
-		int y = Mathf.RoundToInt(position.y * 2) + 512;
-		int z = Mathf.RoundToInt(position.z) + 512;
-		return ((z & 0x3f) << 20) | ((y & 0x3f) << 10) | (x & 0x3f);
-	}
-
 	public Vector3 position {get; private set;}
 	public BlockDirection direction {get; private set;}
 	public BlockShape shape {get; private set;}
+	public string metaInfo {get; private set;}
 	private int[] textureChips = new int[6];
-	private bool meshIsDirty = true;
 	private int hashCode;
 
 	public override int GetHashCode() {
 		return this.hashCode;
 	}
 	
-	public Block(Vector3 position, BlockDirection direction)
-		: this(position, direction, "cube") {
-	}
-
-	public Block(Vector3 position, BlockDirection direction, string typeName) {
-		this.shape = BlockShape.Find(typeName);
+	public Block(Vector3 position, BlockDirection direction, BlockShape shape) {
+		this.shape = shape;
 		this.direction = direction;
 		this.SetPosition(position);
 	}
@@ -60,13 +49,11 @@ public class Block
 
 	public void SetPosition(Vector3 position) {
 		this.position = position;
-		this.hashCode = Block.CalcHashCode(position);
-		this.meshIsDirty = true;
+		this.hashCode = EditUtil.PositionToHashCode(position);
 	}
 
 	public void SetDirection(BlockDirection direction) {
 		this.direction = direction;
-		this.meshIsDirty = true;
 	}
 
 	public int GetTextureChip(BlockDirection direction) {
@@ -75,7 +62,10 @@ public class Block
 
 	public void SetTextureChip(BlockDirection direction, int textureChip) {
 		this.textureChips[this.ToLocalDirection((int)direction)] = textureChip;
-		this.meshIsDirty = true;
+	}
+
+	public void SetMetaInfo(string metaInfo) {
+		this.metaInfo = metaInfo;
 	}
 	
 	private static readonly int[,] ToWorldDirectionTable = new int[4, 6] {
@@ -120,7 +110,7 @@ public class Block
 	}
 
 	// 表示用メッシュを出力
-	public void WriteToMesh(BlockGroup group, BlockMeshMerger meshMerger) {
+	public void WriteToMesh(BlockGroup blockGroup, BlockMeshMerger meshMerger) {
 		BlockShape shape = this.shape;
 		for (int i = 0; i < 6; i++) {
 			int index = this.ToLocalDirection(i);
@@ -132,7 +122,7 @@ public class Block
 			}
 
 			// 隣のブロックに完全に覆われていたら省略する
-			if (this.CheckOcculusion(group, (BlockDirection)i)) {
+			if (this.CheckOcculusion(blockGroup, (BlockDirection)i)) {
 				continue;
 			}
 
@@ -153,12 +143,12 @@ public class Block
 	}
 
 	// ガイド用メッシュを出力
-	public void WriteToGuideMesh(BlockGroup group, BlockMeshMerger mesh) {
+	public void WriteToGuideMesh(BlockGroup blockGroup, BlockMeshMerger mesh) {
 		bool vertexHasWrote = false;
 
 		for (int i = 0; i < 6; i++) {
 			// 隣のブロックに完全に覆われていたら省略する
-			if (this.CheckOcculusion(group, (BlockDirection)i)) {
+			if (this.CheckOcculusion(blockGroup, (BlockDirection)i)) {
 				continue;
 			}
 			
@@ -181,8 +171,8 @@ public class Block
 	}
 
 	// ルート用メッシュを出力
-	public void WriteToRouteMesh(BlockGroup group, BlockMeshMerger mesh) {
-		if (!this.IsMovable(group)) {
+	public void WriteToRouteMesh(BlockGroup blockGroup, BlockMeshMerger mesh) {
+		if (!this.IsEnterable(blockGroup)) {
 			return;
 		}
 
@@ -191,7 +181,7 @@ public class Block
 			int index = EditUtil.ReversePanelVertexIndex(j, this.direction);
 			Vector3 vertex = EditUtil.panelVertices[index];
 			vertex = EditUtil.RotatePosition(vertex, this.direction);
-			vertex.y = this.shape.routePanel[index] * 0.5f - 0.25f;
+			vertex.y = this.shape.panelVertices[index] * 0.5f - 0.25f;
 			mesh.vertexPos.Add(this.position + vertex);
 		}
 
@@ -215,9 +205,10 @@ public class Block
 	}
 	
 	// 上に4ブロック分のスペースがあるか
-	public bool IsMovable(BlockGroup group) {
+	public bool IsEnterable(BlockGroup blockGroup) {
 		for (int i = 1; i <= 4; i++) {
-			if (group.GetBlock(this.position + new Vector3(0, 0.5f * i, 0)) != null) {
+			var block = blockGroup.GetBlock(this.position + new Vector3(0, 0.5f * i, 0));
+			if (block != null) {
 				return false;
 			}
 		}
@@ -233,6 +224,10 @@ public class Block
 		node.SetAttribute("dir", ((int)this.direction).ToString());
 		string[] tileStrArray = Array.ConvertAll<int, string>(this.textureChips, (value) => {return value.ToString();});
 		node.SetAttribute("tile", string.Join(",", tileStrArray));
+		
+		if (!String.IsNullOrEmpty(this.metaInfo)) {
+			node.SetAttribute("meta", this.metaInfo);
+		}
 	}
 
 	// 読み込み
@@ -246,15 +241,9 @@ public class Block
 		}
 
 		Vector3 position = Vector3.zero;
-		if (node.HasAttribute("x")) {
-			float.TryParse(node.GetAttribute("x"), out position.x);
-		}
-		if (node.HasAttribute("y")) {
-			float.TryParse(node.GetAttribute("y"), out position.y);
-		}
-		if (node.HasAttribute("z")) {
-			float.TryParse(node.GetAttribute("z"), out position.z);
-		}
+		if (node.HasAttribute("x")) {float.TryParse(node.GetAttribute("x"), out position.x);}
+		if (node.HasAttribute("y")) {float.TryParse(node.GetAttribute("y"), out position.y);}
+		if (node.HasAttribute("z")) {float.TryParse(node.GetAttribute("z"), out position.z);}
 		this.SetPosition(position);
 
 		if (node.HasAttribute("dir")) {
@@ -267,6 +256,10 @@ public class Block
 			string tileStr = node.GetAttribute("tile");
 			string[] tileStrArray = tileStr.Split(',');
 			this.textureChips = Array.ConvertAll<string, int>(tileStrArray, (value) => {return int.Parse(value);});
+		}
+
+		if (node.HasAttribute("meta")) {
+			this.metaInfo = node.GetAttribute("meta");
 		}
 	}
 };

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Xml;
 using System;
+using System.IO;
 
 public class BlockShape
 {
@@ -20,7 +21,6 @@ public class BlockShape
 
 	public readonly string name;
 	public readonly string displayName;
-	
 	public readonly int connectionType;
 	
 	/// 隣のブロックへの接続タイプ
@@ -29,85 +29,71 @@ public class BlockShape
 	/// 2~: 不完全閉塞(~の向き)
 	public readonly int[] connection;
 	public readonly Mesh[] meshes;
-	public readonly int[] routePanel;
+	public readonly int[] panelVertices;
 
 	public BlockShape(string name, string displayName, 
-		int connectionType, int[] connection, int[] routePanel
+		int connectionType, int[] connection, int[] panelVertices
 	) {
 		this.name = name;
 		this.displayName = displayName;
 		this.connectionType = connectionType;
 		this.connection = connection;
-		this.routePanel = routePanel;
+		this.panelVertices = panelVertices;
 
 		this.meshes = new Mesh[6];
 
-		string[] objNames = new string[]{"Zplus", "Zminus", "Xminus", "Xplus", "Yplus", "Yminus"};
 		var obj = Resources.Load<GameObject>("Blocks/" + name);
-		if (obj != null) {
-			for (int i = 0; i < 6; i++) {
-				var child = obj.transform.Find(objNames[i]);
-				var meshFilter = child.GetComponent<MeshFilter>();
-				if (meshFilter) {
-					this.meshes[i] = meshFilter.sharedMesh;
-				}
+		if (obj == null) {
+			Debug.LogError("Failed to load " + name);
+			return;
+		}
+		string[] objNames = new string[]{"Zplus", "Zminus", "Xminus", "Xplus", "Yplus", "Yminus"};
+		for (int i = 0; i < 6; i++) {
+			var child = obj.transform.Find(objNames[i]);
+			var meshFilter = child.GetComponent<MeshFilter>();
+			if (meshFilter) {
+				this.meshes[i] = meshFilter.sharedMesh;
 			}
 		}
 	}
 	
 	public static BlockShape Find(string name) {
-		for (int i = 0; i < palette.Length; i++) {
-			if (name == palette[i].name) {
-				return palette[i];
-			}
-		}
-		return null;
+		return table[name];
 	}
 
-	private static Vector3 v3(float x, float y, float z) {
-		return new Vector3(x, y, z);
+	public static BlockShape[] palette;
+	public static Dictionary<string, BlockShape> table;
+	
+	public static void LoadData() {
+		var jsonAsset = Resources.Load<TextAsset>("BlockShapes");
+		string jsonText = jsonAsset.text;
+
+		var jsonDict = MiniJSON.Json.Deserialize(jsonText) as Dictionary<string, object>;
+		var data = jsonDict["data"] as List<object>;
+
+		palette = new BlockShape[data.Count];
+		table = new Dictionary<string, BlockShape>();
+
+		for (int i = 0; i < data.Count; i++) {
+			var shape = data[i] as Dictionary<string, object>;
+
+			string name = (string)shape["name"];
+			string displayName = (string)shape["displayName"];
+			int connectionType = (int)(long)shape["connectionType"];
+			int[] connection = objectToIntArray(shape["connection"]);
+			int[] panelVertices = objectToIntArray(shape["panelVertices"]);
+			
+			palette[i] = new BlockShape(name, displayName, connectionType, connection, panelVertices);
+			table.Add(name, palette[i]);
+		}
 	}
-	private static int[] i3(int s0, int s1, int s2) {
-		return new int[] {s0, s1, s2};
+
+	private static int[] objectToIntArray(object listObj) {
+		var list = listObj as List<object>;
+		var result = new int[list.Count];
+		for (int i = 0; i < result.Length; i++) {
+			result[i] = (int)(long)list[i];
+		}
+		return result;
 	}
-	private static int[] i4(int s0, int s1, int s2, int s3) {
-		return new int[] {s0, s1, s2, s3};
-	}
-	private static Vector2[] uv3(float x0, float y0, float x1, float y1, float x2, float y2) {
-		return new Vector2[] {
-			new Vector2(x0, y0),
-			new Vector2(x1, y1),
-			new Vector2(x2, y2)
-		};
-	}
-	private static Vector2[] uv4(float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3) {
-		return new Vector2[] {
-			new Vector2(x0, y0),
-			new Vector2(x1, y1),
-			new Vector2(x2, y2),
-			new Vector2(x3, y3)
-		};
-	}
-	public static BlockShape[] palette = {
-		new BlockShape("cube", "標準ブロック",
-			0, new int[]{1, 1, 1, 1, 1, 1}, new int[]{1, 1, 1, 1}),
-		new BlockShape("diag-slope-large", "対角斜面(大)",
-			2, new int[]{4, 1, 3, 0, 0, 1}, new int[]{0, 1, 1, 1}),
-		new BlockShape("slope", "斜面",
-			2, new int[]{0, 1, 2, 2, 0, 1}, new int[]{0, 0, 1, 1}),
-		new BlockShape("diag-slope-small", "対角斜面(小)",
-			2, new int[]{0, 5, 2, 0, 0, 1}, new int[]{0, 0, 1, 0}),
-		new BlockShape("steep-slope-top", "急斜面(上)",
-			4, new int[]{0, 1, 2, 2, 0, 2}, new int[]{0, 0, 0, 0}),
-		new BlockShape("steep-slope-btm", "急斜面(下)",
-			4, new int[]{0, 1, 2, 2, 0, 2}, new int[]{1, 1, 1, 1}),
-		new BlockShape("stair", "階段",
-			4, new int[]{0, 1, 2, 2, 0, 1}, new int[]{0, 0, 1, 1}),
-		new BlockShape("half", "半ブロック",
-			5, new int[]{2, 2, 2, 2, 1, 0}, new int[]{1, 1, 1, 1}),
-		new BlockShape("half-joint", "半ブロック(コネクタ)",
-			5, new int[]{2, 2, 2, 2, 1, 0}, new int[]{1, 1, 1, 1}),
-		new BlockShape("cube-arc", "丸みブロック",
-			6, new int[]{0, 5, 2, 0, 2, 2}, new int[]{1, 1, 1, 1}),
-	};
 }

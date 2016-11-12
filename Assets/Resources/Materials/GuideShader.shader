@@ -1,4 +1,6 @@
-﻿Shader "Custom/GuideShader"
+﻿// Upgrade NOTE: replaced '_Object2World' with 'unity_ObjectToWorld'
+
+Shader "Custom/GuideShader"
 {
 	Properties
 	{
@@ -36,7 +38,7 @@
 			{
 				v2f o;
 				o.vertex = mul(UNITY_MATRIX_MVP, v.vertex);
-				o.worldPos = mul(_Object2World, v.vertex);
+				o.worldPos = mul(unity_ObjectToWorld, v.vertex);
 				return o;
 			}
 		

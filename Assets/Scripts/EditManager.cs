@@ -7,9 +7,8 @@ using System;
 public partial class EditManager : MonoBehaviour
 {
 	public enum Tool {
-		Pen, Eraser, Brush, Spuit,
-		PointSelector, RectSelector, 
-		RoutePath
+		Block, Eraser, Brush, Spuit,
+		PointSelector, RoutePath, Model, MetaInfo
 	}
 
 	public enum CoordinateSystem {
@@ -26,14 +25,22 @@ public partial class EditManager : MonoBehaviour
 	public Selector Selector {get; private set;}
 	public Grid Grid {get; private set;}
 	public EditCursor Cursor {get; private set;}
-	public RoutePath routePath {get; private set;}
+	public RoutePath RoutePath {get; private set;}
+	public ToolMenu ToolMenu {get; private set;}
+	public ModelProperties ModelProperties {get; private set;}
+	public MetaInfo MetaInfo {get; private set;}
 
 	private CoordinateSystem coordinateSystem = CoordinateSystem.RightHanded;
-	private Tool tool = Tool.Pen;
+	private Tool tool = Tool.Block;
 	private string toolBlock = "cube";
+	private string toolModel = "tree";
 	private int toolChip = 0;
 	private List<Command> cmdlist = new List<Command>();
 	private int cmdpos = 0;
+
+	private GameObject blockPaletteListView;
+	private GameObject texturePaletteListView;
+	private GameObject modelPaletteListView;
 
 	void Awake() {
 		if (EditManager.Instance) {
@@ -57,12 +64,41 @@ public partial class EditManager : MonoBehaviour
 		
 		var routePathObj = new GameObject("RoutePath");
 		selectionObj.transform.parent = this.transform;
-		this.routePath = routePathObj.AddComponent<RoutePath>();
+		this.RoutePath = routePathObj.AddComponent<RoutePath>();
 		routePathObj.SetActive(false);
+
+		this.ToolMenu = GameObject.FindObjectOfType<ToolMenu>();
+		this.ModelProperties = GameObject.FindObjectOfType<ModelProperties>();
+		this.MetaInfo = GameObject.FindObjectOfType<MetaInfo>();
+
+		BlockShape.LoadData();
+		ModelShape.LoadData();
+	}
+
+	void OnApplicationQuit() {
+		if (Application.isEditor) {
+			return;
+		}
+
+		var result = Dialogs.ShowMessage("終了する前に変更を保存しますか？", "Tsumiki Editor",
+			Dialogs.MessageType.YesNoCancel, Dialogs.MessageIcon.Exclamation);
+		if (result == Dialogs.MessageResult.Cancel) {
+			Application.CancelQuit();
+			return;
+		}
+
+		if (result == Dialogs.MessageResult.Yes) {
+			FileManager.Save();
+		}
 	}
 
 	void Start() {
 		this.Reset();
+		
+		this.blockPaletteListView = GameObject.Find("BlockPaletteListView");
+		this.texturePaletteListView = GameObject.Find("TexturePaletteListView");
+		this.modelPaletteListView = GameObject.Find("ModelPaletteListView");
+		this.SetTool(Tool.Block);
 
 		//FileManager.Load("TestData/test02.tkd");
 		//FileManager.Load("TestData/test01.tkd");
@@ -71,18 +107,33 @@ public partial class EditManager : MonoBehaviour
 	public void SetTool(Tool tool) {
 		this.tool = tool;
 
+		this.blockPaletteListView.SetActive(false);
+		this.texturePaletteListView.SetActive(false);
+		this.modelPaletteListView.SetActive(false);
+
 		// カーソルにツールをセットする
 		switch (this.tool) {
-		case Tool.Pen:
+		case Tool.Block:
 			this.Cursor.SetBlock(this.toolBlock);
+			this.blockPaletteListView.SetActive(true);
 			break;
 		case Tool.Eraser:
 		case Tool.PointSelector:
 			this.Cursor.SetBlock();
 			break;
 		case Tool.Brush:
+			this.Cursor.SetPanel();
+			this.texturePaletteListView.SetActive(true);
+			break;
 		case Tool.Spuit:
 		case Tool.RoutePath:
+			this.Cursor.SetPanel();
+			break;
+		case Tool.Model:
+			this.Cursor.SetModel(this.toolModel);
+			this.modelPaletteListView.SetActive(true);
+			break;
+		case Tool.MetaInfo:
 			this.Cursor.SetPanel();
 			break;
 		}
@@ -90,7 +141,6 @@ public partial class EditManager : MonoBehaviour
 		// 選択以外のツールならセレクタをクリアする
 		switch (this.tool) {
 		case Tool.PointSelector:
-		case Tool.RectSelector:
 			break;
 		default:
 			this.Selector.ReleaseBlocks();
@@ -98,10 +148,13 @@ public partial class EditManager : MonoBehaviour
 			break;
 		}
 
+		EditManager.Instance.MetaInfo.gameObject.SetActive(false);
+		this.RoutePath.isSelected = false;
+
 		if (this.tool == Tool.RoutePath) {
-			this.routePath.SetEnabled(true);
+			this.RoutePath.SetEnabled(true);
 		} else {
-			this.routePath.SetEnabled(false);
+			this.RoutePath.SetEnabled(false);
 		}
 	}
 	public Tool GetTool() {
@@ -110,8 +163,15 @@ public partial class EditManager : MonoBehaviour
 
 	public void SetToolBlock(string blockName) {
 		this.toolBlock = blockName;
-		if (this.tool == Tool.Pen) {
+		if (this.tool == Tool.Block) {
 			this.Cursor.SetBlock(this.toolBlock);
+		}
+	}
+	
+	public void SetToolModel(string modelName) {
+		this.toolModel = modelName;
+		if (this.tool == Tool.Model) {
+			this.Cursor.SetModel(this.toolModel);
 		}
 	}
 

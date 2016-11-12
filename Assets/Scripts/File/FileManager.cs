@@ -3,7 +3,7 @@ using System.Collections;
 using System.IO;
 using System.Xml;
 using System.Text;
-using System.Windows.Forms;
+using System;
 
 public static class FileManager
 {
@@ -11,22 +11,12 @@ public static class FileManager
 	public static string currentFilePath {get; private set;}
 	
 	public static string OpenDialog(bool isSave) {
-		FileDialog fd;
+        const string filter = "Tsumiki Design file (*.tkd)\0*.tkd\0All files (*.*)\0*.*\0\0";
+		
 		if (isSave) {
-			fd = new SaveFileDialog();
-			fd.Title = "Save file";
+			return Dialogs.ShowFileDialog("Save project file", filter, lastDirPath, true);
 		} else {
-			fd = new OpenFileDialog();
-			fd.Title = "Open file";
-		}
-		using (fd) {
-			fd.InitialDirectory = (lastDirPath != null) ? lastDirPath : "";
-			fd.Filter = "Tsumiki Design file (*.tkd)|*.tkd|All files (*.*)|*.*";
-			if (fd.ShowDialog() == DialogResult.OK) {
-				lastDirPath = Path.GetDirectoryName(fd.FileName);
-				return fd.FileName;
-			}
-			return null;
+			return Dialogs.ShowFileDialog("Open project file", filter, lastDirPath, false);
 		}
 	}
 
@@ -34,24 +24,40 @@ public static class FileManager
 		OBJ, E3D
 	}
 	public static string OpenExportDialog(ExportFormat format) {
-		FileDialog fd;
-		fd = new SaveFileDialog();
-		fd.Title = "Export data";
-		using (fd) {
-			fd.InitialDirectory = (lastDirPath != null) ? lastDirPath : "";
-			switch (format) {
-			case ExportFormat.OBJ:
-				fd.Filter = "Alias Wavefront OBJ File (*.obj)|*.obj";
-				break;
-			case ExportFormat.E3D:
-				fd.Filter = "E3D Model Format v3 File (*.e3d)|*.e3d";
-				break;
-			}
-			if (fd.ShowDialog() == DialogResult.OK) {
-				lastDirPath = Path.GetDirectoryName(fd.FileName);
-				return fd.FileName;
-			}
+		string filter;
+		switch (format) {
+		case ExportFormat.OBJ:
+			filter = "Alias Wavefront OBJ File (*.obj)\0*.obj\0\0";
+			break;
+		case ExportFormat.E3D:
+			filter = "E3D Model Format v3 File (*.e3d)\0*.e3d\0\0";
+			break;
+		default:
 			return null;
+		}
+		return Dialogs.ShowFileDialog("Export data", filter, lastDirPath, true);
+	}
+
+	public static void Load() {
+		string path = OpenDialog(false);
+		if (!String.IsNullOrEmpty(path)) {
+			Load(path);
+		}
+	}
+
+	public static void Save() {
+		string path = FileManager.currentFilePath;
+		if (!String.IsNullOrEmpty(path)) {
+			Save(path);
+		} else {
+			SaveAs();
+		}
+	}
+
+	public static void SaveAs() {
+		string path = OpenDialog(true);
+		if (!String.IsNullOrEmpty(path)) {
+			Save(path);
 		}
 	}
 
@@ -69,6 +75,14 @@ public static class FileManager
 			var layer = EditManager.Instance.AddLayer(layerNode.Name);
 			layer.Deserialize(layerNode);
 		}
+
+		// パス情報の保存
+		var routepathList = root.GetElementsByTagName("routepath");
+		if (routepathList.Count > 0) {
+			var routepathNode = routepathList[0] as XmlElement;
+			EditManager.Instance.RoutePath.Clear();
+			EditManager.Instance.RoutePath.Deserialize(routepathNode);
+		}
 		currentFilePath = filePath;
 	}
 	
@@ -83,11 +97,19 @@ public static class FileManager
 
 		root.SetAttribute("version", "1.00");
 		
+		// ブロック情報の保存
 		foreach (var layer in EditManager.Instance.Layers) {
 			var layerNode = xml.CreateElement("layer");
 			layerNode.SetAttribute("name", layer.gameObject.name);
 			layer.Serialize(layerNode);
 			root.AppendChild(layerNode);
+		}
+
+		// パス情報の保存
+		{
+			var routePathNode = xml.CreateElement("routepath");
+			EditManager.Instance.RoutePath.Serialize(routePathNode);
+			root.AppendChild(routePathNode);
 		}
 
 		xml.WriteTo(writer);

@@ -8,19 +8,23 @@ using System.Windows.Forms;
 
 public class Selector : MonoBehaviour
 {
-	Guide guide;
-	BlockGroup guideBlocks = new BlockGroup();
+	Guide selectedBlockGuide;
+	BlockGroup selectedBlocks = new BlockGroup();
+	Guide selectedModelGuide;
+	ModelGroup selectedModels = new ModelGroup();
 
 	CaptureMode captureMode;
 	EditLayer captureLayer;
 	Block[] capturedBlocks = null;
+	Model[] capturedModels = null;
 	Vector3 capturedCenter = Vector3.zero;
 	int capturedRotation;
-	Block[] backup = null;
 	bool dirtyMesh = false;
 	
 	public Vector3 LastPosition {get; private set;}
-	public int Count {get {return this.guideBlocks.GetBlockCount();}}
+	public int Count {get {
+		return this.selectedBlocks.GetBlockCount() + this.selectedModels.GetModelCount();
+	}}
 
 	public enum ColorMode {
 		Selection,
@@ -33,73 +37,113 @@ public class Selector : MonoBehaviour
 	};
 
 	void Start() {
-		var guideObj = new GameObject();
-		guideObj.name = "Guide";
-		guideObj.transform.parent = this.transform;
-		this.guide = guideObj.AddComponent<Guide>();
-		this.SetColorMode(ColorMode.Selection);
+		var blockGuideObj = new GameObject();
+		blockGuideObj.name = "SelectedBlocks";
+		blockGuideObj.transform.parent = this.transform;
+		this.selectedBlockGuide = blockGuideObj.AddComponent<Guide>();
+		
+		var modelObj = new GameObject();
+		modelObj.name = "SelectedModels";
+		modelObj.transform.parent = this.transform;
+		this.selectedModelGuide = modelObj.AddComponent<Guide>();
 
 		var captureObj = new GameObject();
-		captureObj.name = "Capture";
+		captureObj.name = "Captured";
 		captureObj.transform.parent = this.transform;
 		this.captureLayer = captureObj.AddComponent<EditLayer>();
+		
+		this.SetColorMode(ColorMode.Selection);
 	}
 
 	// 色をセット
 	private void SetColorMode(ColorMode colorMode) {
 		switch (colorMode) {
 		case ColorMode.Selection:
-			this.guide.SetColor(new Color(1.0f, 1.0f, 1.0f), new Color(0.5f, 1.0f, 0.5f));
+			this.selectedBlockGuide.SetColor(new Color(1.0f, 1.0f, 1.0f), new Color(0.5f, 1.0f, 0.5f));
+			this.selectedModelGuide.SetColor(new Color(1.0f, 1.0f, 1.0f), new Color(0.5f, 1.0f, 0.5f));
 			break;
 		case ColorMode.Captured:
-			this.guide.SetColor(new Color(1.0f, 1.0f, 1.0f), new Color(1.0f, 0.5f, 1.0f));
+			this.selectedBlockGuide.SetColor(new Color(1.0f, 1.0f, 1.0f), new Color(1.0f, 0.5f, 1.0f));
+			this.selectedModelGuide.SetColor(new Color(1.0f, 1.0f, 1.0f), new Color(1.0f, 0.5f, 1.0f));
 			break;
 		}
 	}
 
 	void LateUpdate() {
 		if (this.dirtyMesh) {
-			this.guideBlocks.UpdateMesh();
-			this.guide.SetMesh(this.guideBlocks.GetGuideMesh(), this.guideBlocks.GetWireMesh());
+			this.selectedBlocks.UpdateMesh();
+			this.selectedBlockGuide.SetMesh(this.selectedBlocks.GetGuideMesh(), this.selectedBlocks.GetWireMesh());
+			this.selectedModels.UpdateMesh();
+			this.selectedModelGuide.SetMesh(this.selectedModels.GetGuideMesh(), this.selectedModels.GetWireMesh());
 			this.dirtyMesh = false;
 		}
 	}
 
-	public bool IsSelected(Vector3 position) {
-		return this.guideBlocks.GetBlock(position) != null;
+	public void SetDirty() {
+		this.dirtyMesh = true;
 	}
 
-	public void Set(Block[] blocks) {
+	public bool IsSelected(Vector3 position) {
+		return this.selectedBlocks.GetBlock(position) != null;
+	}
+
+	public bool IsSelected(Model model) {
+		return this.selectedModels.Contains(model);
+	}
+
+	public void Set(Block[] blocks, Model[] models) {
 		this.Clear();
-		foreach (var block in blocks) {
-			this.Add(block.position);
+		if (blocks != null) {
+			foreach (var block in blocks) {
+				this.Add(block.position);
+			}
+		}
+		if (models != null) {
+			foreach (var model in models) {
+				this.Add(model);
+			}
 		}
 	}
 
 	public void Add(Vector3 position) {
-		var block = new Block(position, BlockDirection.Zplus);
-		if (block != null) {
-			this.guideBlocks.AddBlock(block);
-			this.LastPosition = position;
-		}
+		var block = new Block(position, BlockDirection.Zplus, BlockShape.Find("cube"));
+		if (block == null) {return;}
+		this.selectedBlocks.AddBlock(block);
+		this.LastPosition = position;
 		this.dirtyMesh = true;
 	}
 
 	public void Remove(Vector3 position) {
-		var block = this.guideBlocks.GetBlock(position);
-		if (block != null) {
-			this.guideBlocks.RemoveBlock(block);
-			this.LastPosition = position;
-		}
+		var block = this.selectedBlocks.GetBlock(position);
+		if (block == null) {return;}
+		this.selectedBlocks.RemoveBlock(block);
+		this.LastPosition = position;
+		this.dirtyMesh = true;
+	}
+	
+	public void Add(Model model) {
+		if (model == null) return;
+		this.selectedModels.AddModel(model);
+		this.LastPosition = model.position;
+		EditManager.Instance.ModelProperties.SetModels(this.GetSelectedModels());
+		this.dirtyMesh = true;
+	}
+	
+	public void Remove(Model model) {
+		if (model == null) return;
+		this.selectedModels.RemoveModel(model, false);
+		this.LastPosition = model.position;
+		EditManager.Instance.ModelProperties.SetModels(this.GetSelectedModels());
 		this.dirtyMesh = true;
 	}
 
-	public bool HasSelectedBlocks() {
-		return this.guideBlocks.GetNumBlocks() > 0;
+	public bool HasSelectedObjects() {
+		return this.selectedBlocks.GetNumBlocks() > 0 ||
+			this.selectedModels.GetNumModels() > 0;
 	}
 
 	public Block[] GetSelectedBlocks() {
-		Block[] points = this.guideBlocks.GetAllBlocks();
+		Block[] points = this.selectedBlocks.GetAllBlocks();
 		List<Block> blocks = new List<Block>();
 		foreach (var point in points) {
 			Block block = EditManager.Instance.CurrentLayer.GetBlock(point.position);
@@ -109,31 +153,18 @@ public class Selector : MonoBehaviour
 		}
 		return blocks.ToArray();
 	}
-
-	public void Backup() {
-		this.backup = guideBlocks.GetAllBlocks();
-	}
-
-	public void Restore() {
-		if (this.backup == null) {
-			return;
-		}
-
-		foreach (var block in this.backup) {
-			this.guideBlocks.AddBlock(block);
-		}
-		this.dirtyMesh = true;
+	
+	public Model[] GetSelectedModels() {
+		return this.selectedModels.GetAllModels();
 	}
 
 	public void Clear(bool backup = false) {
-		this.guideBlocks.Clear();
+		this.selectedBlocks.Clear();
+		this.selectedModels.Clear();
 		this.transform.position = Vector3.zero;
 		this.ReleaseBlocks();
+		EditManager.Instance.ModelProperties.SetModels(this.GetSelectedModels());
 		this.dirtyMesh = true;
-
-		if (backup) {
-			this.backup = null;
-		}
 	}
 	
 	public void SelectRange(Vector3 begin, Vector3 end) {
@@ -146,6 +177,9 @@ public class Selector : MonoBehaviour
 					Vector3 curpos = new Vector3(x, y * 0.5f, z);
 					if (!this.IsSelected(curpos)) {
 						this.Add(curpos);
+						this.Add(EditManager.Instance.CurrentLayer.GetModel(curpos));
+					} else {
+						this.Remove(EditManager.Instance.CurrentLayer.GetModel(curpos));
 					}
 				}
 			}
@@ -184,7 +218,7 @@ public class Selector : MonoBehaviour
 	// 選択ブロックを移動
 	public void Move(Vector2 screenDir) {
 		if (!this.HasCapturedBlocks()) {
-			this.CaptureBlocks(CaptureMode.Moving, this.GetSelectedBlocks());
+			this.CaptureBlocks(CaptureMode.Moving, this.GetSelectedBlocks(), this.GetSelectedModels());
 		}
 
 		Vector3 up, right;
@@ -195,7 +229,7 @@ public class Selector : MonoBehaviour
 	// 選択ブロックを回転
 	public void Rotate(int value) {
 		if (!this.HasCapturedBlocks()) {
-			this.CaptureBlocks(CaptureMode.Moving, this.GetSelectedBlocks());
+			this.CaptureBlocks(CaptureMode.Moving, this.GetSelectedBlocks(), this.GetSelectedModels());
 		}
 
 		this.capturedRotation += value;
@@ -215,9 +249,9 @@ public class Selector : MonoBehaviour
 		ScreenDirToWorldDir(out up, out right);
 		Vector3 expandVector =  up * screenDir.y + right * screenDir.x;
 
-		foreach (var point in this.guideBlocks.GetAllBlocks()) {
+		foreach (var point in this.selectedBlocks.GetAllBlocks()) {
 			Vector3 newPosition = point.position + expandVector;
-			var target = this.guideBlocks.GetBlock(newPosition);
+			var target = this.selectedBlocks.GetBlock(newPosition);
 			if (target == null) {
 				this.Add(newPosition);
 			}
@@ -231,7 +265,7 @@ public class Selector : MonoBehaviour
 
 	// キャプチャしているブロックの取得
 	public Block[] GetCapturedBlocks() {
-		Block[] points = this.guideBlocks.GetAllBlocks();
+		Block[] points = this.selectedBlocks.GetAllBlocks();
 		List<Block> blocks = new List<Block>();
 		foreach (var point in points) {
 			Block block = EditManager.Instance.CurrentLayer.GetBlock(point.position);
@@ -243,11 +277,11 @@ public class Selector : MonoBehaviour
 	}
 
 	// 選択ブロックをキャプチャする
-	public void CaptureBlocks(CaptureMode mode, Block[] blocks) {
+	public void CaptureBlocks(CaptureMode mode, Block[] blocks, Model[] models) {
 		if (this.HasCapturedBlocks()) {
 			return;
 		}
-
+		
 		this.captureMode = mode;
 
 		if (mode == CaptureMode.Moving) {
@@ -255,7 +289,7 @@ public class Selector : MonoBehaviour
 			EditManager.Instance.CurrentLayer.RemoveBlocks(blocks);
 		}
 		
-		if (blocks.Length == 0) {
+		if (blocks.Length == 0 && models.Length == 0) {
 			return;
 		}
 		
@@ -266,19 +300,34 @@ public class Selector : MonoBehaviour
 			this.captureLayer.AddBlock(block);
 			sumPosition += block.position;
 		}
+		foreach (var model in models) {
+			this.captureLayer.AddModel(model);
+			sumPosition += model.position;
+		}
 
 		// 中心位置を計算する
-		this.capturedCenter = sumPosition / blocks.Length;
+		this.capturedCenter = sumPosition / (blocks.Length + models.Length);
 		capturedCenter.x = Mathf.Round(capturedCenter.x);
 		capturedCenter.y = Mathf.Round(capturedCenter.y * 2.0f) * 0.5f;
 		capturedCenter.z = Mathf.Round(capturedCenter.z);
 		
 		this.capturedBlocks = blocks;
+		this.capturedModels = models;
 		this.captureLayer.transform.position = -this.capturedCenter;
-		this.guide.transform.position = -this.capturedCenter;
+		this.selectedBlockGuide.transform.position = -this.capturedCenter;
+		this.selectedModelGuide.transform.position = -this.capturedCenter;
 		this.transform.position = this.capturedCenter;
+		
+		// キャプチャ対象のモデルの位置を移動する
+		foreach (var model in models) {
+			model.gameObject.transform.parent = this.transform;
+		}
 
+		// マテリアルををキャプチャ中の色に変更
 		this.SetColorMode(ColorMode.Captured);
+		
+		// モデルのプロパティ編集を禁止
+		EditManager.Instance.ModelProperties.SetModels(null);
 	}
 
 	// 選択ブロックを開放
@@ -288,14 +337,26 @@ public class Selector : MonoBehaviour
 		}
 
 		Block[] blocks = this.capturedBlocks;
+		Model[] models = this.capturedModels;
+
 		this.captureLayer.RemoveBlocks(blocks);
+		this.captureLayer.RemoveModels(models, false);
 
 		Vector3 moveVector = this.transform.position - this.capturedCenter;
+		
+		// キャプチャ対象のモデルの位置を戻す
+		foreach (var model in models) {
+			if (model.gameObject != null) {
+				model.gameObject.transform.parent = EditManager.Instance.CurrentLayer.transform;
+			}
+		}
 
 		if (this.captureMode == CaptureMode.Moving) {
 			// 一旦実在レイヤーに戻して移動コマンドを打つ
 			EditManager.Instance.CurrentLayer.AddBlocks(blocks);
-			EditManager.Instance.MoveBlocks(blocks, moveVector, this.capturedCenter, this.capturedRotation);
+			EditManager.Instance.CurrentLayer.AddModels(models);
+			EditManager.Instance.MoveObjects(blocks, models, moveVector, 
+				this.capturedCenter, this.capturedRotation);
 		} else {
 			// ブロック追加コマンドを打つ
 			foreach (var block in blocks) {
@@ -304,20 +365,31 @@ public class Selector : MonoBehaviour
 				block.SetPosition(this.capturedCenter + offset + moveVector);
 				block.SetDirection(EditUtil.RotateDirection(block.direction, this.capturedRotation));
 			}
-			EditManager.Instance.AddBlocks(blocks);
+			foreach (var model in models) {
+				Vector3 offset = model.position - this.capturedCenter;
+				offset = EditUtil.RotatePosition(offset, this.capturedRotation);
+				model.SetPosition(this.capturedCenter + offset + moveVector);
+				model.SetRotation(model.rotation + this.capturedRotation * 90);
+			}
+			EditManager.Instance.AddObjects(blocks, models);
 		}
 		
 		this.transform.position = Vector3.zero;
 		this.captureLayer.transform.position = Vector3.zero;
-		this.guide.transform.position = Vector3.zero;
+		this.selectedBlockGuide.transform.position = Vector3.zero;
+		this.selectedModelGuide.transform.position = Vector3.zero;
 		this.transform.rotation = Quaternion.identity;
 		this.capturedRotation = 0;
 		this.capturedBlocks = null;
 		
-		this.Set(blocks);
+		this.Set(blocks, models);
 		this.dirtyMesh = true;
 		
+		// マテリアルをを選択中の色に変更
 		this.SetColorMode(ColorMode.Selection);
+
+		// モデルのプロパティ編集を許可
+		EditManager.Instance.ModelProperties.SetModels(this.GetSelectedModels());
 	}
 
 	public void CopyToClipboard() {
@@ -330,9 +402,15 @@ public class Selector : MonoBehaviour
 		var root = xml.CreateElement("tsumiki");
 		xml.AppendChild(root);
 
-		foreach (var blocks in this.GetSelectedBlocks()) {
+		foreach (var block in this.GetSelectedBlocks()) {
 			var blockNode = xml.CreateElement("block");
-			blocks.Serialize(blockNode);
+			block.Serialize(blockNode);
+			root.AppendChild(blockNode);
+		}
+		
+		foreach (var model in this.GetSelectedModels()) {
+			var blockNode = xml.CreateElement("model");
+			model.Serialize(blockNode);
 			root.AppendChild(blockNode);
 		}
 
@@ -368,9 +446,15 @@ public class Selector : MonoBehaviour
 			var blockNode = blockList[i] as XmlElement;
 			blocks[i] = new Block(blockNode);
 		}
+		var modelList = root.GetElementsByTagName("model");
+		Model[] models = new Model[modelList.Count];
+		for (int i = 0; i < modelList.Count; i++) {
+			var modelNode = modelList[i] as XmlElement;
+			models[i] = new Model(modelNode);
+		}
 		
 		this.ReleaseBlocks();
-		this.Set(blocks);
-		this.CaptureBlocks(CaptureMode.Paste, blocks);
+		this.Set(blocks, models);
+		this.CaptureBlocks(CaptureMode.Paste, blocks, models);
 	}
 }

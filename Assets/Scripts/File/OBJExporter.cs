@@ -3,7 +3,6 @@ using System.Collections;
 using System.IO;
 using System.Xml;
 using System.Text;
-using System.Windows.Forms;
 
 // Alias Wavefront OBJフォーマット向けのエクスポータ 
 public static class OBJExporter
