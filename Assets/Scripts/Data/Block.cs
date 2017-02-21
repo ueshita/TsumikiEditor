@@ -30,7 +30,7 @@ public class Block
 	public BlockDirection direction {get; private set;}
 	public BlockShape shape {get; private set;}
 	public string metaInfo {get; private set;}
-	private int[] textureChips = new int[6];
+	private int[] textureChips = new int[7];
 	private int hashCode;
 
 	public override int GetHashCode() {
@@ -79,11 +79,14 @@ public class Block
 		{0, 1, 2, 3, 4, 5}, {1, 0, 3, 2, 4, 5}, 
 		{3, 2, 0, 1, 4, 5}, {2, 3, 1, 0, 4, 5}};
 	private int ToLocalDirection(int index) {
-		return ToLocalDirectionTable[(int)this.direction, index];
+		return (index < 6) ? ToLocalDirectionTable[(int)this.direction, index] : index;
 	}
 
-	public int GetConnection(BlockDirection direction) {
+	public BlockConnection GetConnection(BlockDirection direction) {
 		return this.shape.connection[ToLocalDirection((int)direction)];
+	}
+	public BlockDirection GetConnectionDir(BlockDirection direction) {
+		return this.shape.connectionDir[ToLocalDirection((int)direction)];
 	}
 
 	// 隣のブロックとの閉塞チェック
@@ -92,16 +95,14 @@ public class Block
 		// 隣のブロックに完全に覆われていたら省略する（閉塞チェック）
 		Block neighborBlock = group.GetBlock(this.position + neighborOffsets[dirIndex]);
 		if (neighborBlock != null) {
-			int con1 = this.GetConnection((BlockDirection)(dirIndex));
-			int con2 = neighborBlock.GetConnection((BlockDirection)(dirIndex ^ 1));
-			if (con1 >= 1 && con2 == 1) {
+			var con1 = this.GetConnection((BlockDirection)(dirIndex));
+			var con2 = neighborBlock.GetConnection((BlockDirection)(dirIndex ^ 1));
+			if (con2 == BlockConnection.Square) {
 				return true;
-			} else if (con1 >= 2 && con2 >= 2 &&
-				(this.shape.connectionType == neighborBlock.shape.connectionType))
-			{
-				int idx1 = this.ToWorldDirection(con1 - 2);
-				int idx2 = neighborBlock.ToWorldDirection(con2 - 2);
-				if (idx1 == idx2) {
+			} else if (con1 == con2) {
+				var dir1 = this.GetConnectionDir((BlockDirection)(dirIndex));
+				var dir2 = neighborBlock.GetConnectionDir((BlockDirection)(dirIndex ^ 1));
+				if (dir1 == dir2) {
 					return true;
 				}
 			}
@@ -112,32 +113,69 @@ public class Block
 	// 表示用メッシュを出力
 	public void WriteToMesh(BlockGroup blockGroup, BlockMeshMerger meshMerger) {
 		BlockShape shape = this.shape;
-		for (int i = 0; i < 6; i++) {
-			int index = this.ToLocalDirection(i);
-			int offset = meshMerger.vertexPos.Count;
+		if (shape.autoPlacement) {
+			// 自動配置ブロックの処理
 			
-			var mesh = shape.meshes[index];
-			if (mesh == null) {
-				continue;
+			// 隣接ブロックを取得
+			var list = new Vector3[] {
+				new Vector3( 0, 0,  1), new Vector3(-1, 0,  0), new Vector3( 0, 0, -1), new Vector3( 1, 0,  0),
+				new Vector3(-1, 0,  1), new Vector3(-1, 0, -1), new Vector3( 1, 0, -1), new Vector3( 1, 0,  1),
+				new Vector3( 0, 0.5f, 0), new Vector3( 0, 0.5f,  1), new Vector3(-1, 0.5f,  0), new Vector3( 0, 0.5f, -1), new Vector3( 1, 0.5f,  0),
+			};
+
+			int pattern = 0;
+			for (int i = 0; i < list.Length; i++) {
+				var block = blockGroup.GetBlock(position + list[i]);
+				if (block != null) {pattern |= (1 << i);}
 			}
 
-			// 隣のブロックに完全に覆われていたら省略する
-			if (this.CheckOcculusion(blockGroup, (BlockDirection)i)) {
-				continue;
-			}
+			for (int i = 0; i < 4; i++) {
+				bool s1 = (pattern & (1 << (i))) != 0;				// 隣接1
+				bool s2 = (pattern & (1 << ((i + 1) % 4))) != 0;	// 隣接2
+				bool s3 = (pattern & (1 << (i + 4))) != 0;			// 斜め隣接
+				bool s4 = (pattern & (1 << 8)) != 0;				// 上隣接
+				bool s5 = (pattern & (1 << (i + 9))) != 0;			// 上横隣接1
+				bool s6 = (pattern & (1 << (i + 9))) != 0;			// 上横隣接2
 
-			var chip = TexturePalette.Instance.GetChip(this.textureChips[index]);
-			
-			Vector3[] vertexPos = mesh.vertices;
-			Vector2[] vertexUv = mesh.uv;
-			for (int j = 0; j < vertexPos.Length; j++) {
-				Vector3 localPosition = vertexPos[j];
-				meshMerger.vertexPos.Add(this.position + EditUtil.RotatePosition(localPosition, this.direction));
-				meshMerger.vertexUv.Add(chip.ApplyUV(vertexUv[j], (BlockDirection)i, this.position.y));
+				int meshOffset;
+				if (s3) {
+					if (s1 && s2) meshOffset = (s4 && (s5 || s6)) ? -1 : 0;
+					else if (s1)  meshOffset = (s4) ? (s5) ? 24 : 32 : 8;
+					else if (s2)  meshOffset = (s4) ? (s6) ? 28 : 36 : 12;
+					else          meshOffset = (s4) ? 20 : 4;
+				} else {
+					if (s1 && s2) meshOffset = 16;
+					else if (s1)  meshOffset = (s4) ? (s5) ? 24 : 32 : 8;
+					else if (s2)  meshOffset = (s4) ? (s6) ? 28 : 36 : 12;
+					else          meshOffset = (s4) ? 20 : 4;
+				}
+				if (meshOffset < 0) {
+					continue;
+				}
+
+				var mesh = shape.meshes[meshOffset + i];
+				if (mesh == null) {
+					continue;
+				}
+
+				meshMerger.Merge(mesh, this.position, this.direction, this.textureChips[6]);
 			}
-			int[] indices = mesh.GetIndices(0);
-			for (int j = 0; j < indices.Length; j++) {
-				meshMerger.triangles.Add(offset + indices[j]);
+		} else {
+			// 6方向ブロックメッシュ
+			for (int i = 0; i < shape.meshes.Length; i++) {
+				int index = this.ToLocalDirection(i);
+			
+				var mesh = shape.meshes[index];
+				if (mesh == null) {
+					continue;
+				}
+
+				// 隣のブロックに完全に覆われていたら省略する
+				if (i < 6 && this.CheckOcculusion(blockGroup, (BlockDirection)i)) {
+					continue;
+				}
+				
+				meshMerger.Merge(mesh, this.position, this.direction, this.textureChips[index]);
 			}
 		}
 	}

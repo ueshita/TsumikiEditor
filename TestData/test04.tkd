@@ -1,0 +1,52 @@
+﻿<tsumiki version="1.00">
+  <layer name="layer">
+    <block type="cube" x="1" y="0" z="-3" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="cube" x="1" y="0" z="-2" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="cube" x="1" y="0" z="-4" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="cube" x="1" y="0" z="-5" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="cube" x="2" y="0" z="-5" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="cube" x="2" y="0" z="-4" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="cube" x="2" y="0" z="-3" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="Fence-1" x="1" y="0.5" z="-2" dir="3" tile="0,0,0,0,0,0,0" />
+    <block type="cube" x="2" y="0" z="-2" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="Fence-1" x="1" y="0.5" z="-3" dir="3" tile="0,0,0,0,0,0,0" />
+    <block type="Fence-1" x="1" y="0.5" z="-4" dir="3" tile="0,0,0,0,0,0,0" />
+    <block type="Fence-1" x="1" y="0.5" z="-5" dir="3" tile="0,0,0,0,0,0,0" />
+    <block type="Fence-2" x="1" y="0.5" z="-6" dir="1" tile="0,0,0,0,0,0,0" />
+    <block type="cube" x="1" y="0" z="-6" dir="1" tile="0,0,0,0,0,0,0" />
+    <block type="cube" x="2" y="0" z="-6" dir="1" tile="0,0,0,0,0,0,0" />
+    <block type="cube" x="3" y="0" z="-6" dir="1" tile="0,0,0,0,0,0,0" />
+    <block type="Fence-3" x="2" y="0.5" z="-6" dir="3" tile="0,0,0,0,0,0,0" />
+    <block type="cube" x="2" y="0" z="-7" dir="3" tile="0,0,0,0,0,0,0" />
+    <block type="cube" x="3" y="0" z="-7" dir="3" tile="0,0,0,0,0,0,0" />
+    <block type="cube" x="2" y="0" z="-8" dir="3" tile="0,0,0,0,0,0,0" />
+    <block type="cube" x="3" y="0" z="-8" dir="3" tile="0,0,0,0,0,0,0" />
+    <block type="Fence-1" x="2" y="0.5" z="-7" dir="3" tile="0,0,0,0,0,0,0" />
+    <block type="Fence-1" x="2" y="0.5" z="-8" dir="3" tile="0,0,0,0,0,0,0" />
+    <block type="cylinder-1" x="3" y="0.5" z="-6" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="cylinder-1" x="3" y="1" z="-6" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="cylinder-1" x="3" y="1.5" z="-6" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="cylinder-1" x="3" y="2" z="-6" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="cylinder-2" x="3" y="0.5" z="-8" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="cylinder-2" x="3" y="1" z="-8" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="cylinder-2" x="3" y="1.5" z="-8" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="cylinder-2" x="3" y="2" z="-8" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="half" x="4" y="0" z="-8" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="half" x="5" y="0" z="-8" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="slope" x="4" y="0" z="-7" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="slope" x="5" y="0" z="-7" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="diag-slope-small" x="6" y="0" z="-7" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="slope" x="6" y="0" z="-8" dir="2" tile="0,0,0,0,0,0,0" />
+    <block type="cube" x="3" y="0" z="-5" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="cube" x="3" y="0" z="-4" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="cube" x="3" y="0" z="-3" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="cube" x="3" y="0" z="-2" dir="0" tile="0,0,0,0,0,0,0" />
+    <block type="cube-arc" x="4" y="0" z="-2" dir="2" tile="0,0,0,0,0,0,0" />
+    <block type="cube-arc" x="4" y="0" z="-3" dir="1" tile="0,0,0,0,0,0,0" />
+    <block type="stair" x="3" y="0.5" z="-3" dir="1" tile="0,0,0,0,0,0,0" />
+    <block type="stair" x="2" y="0.5" z="-3" dir="1" tile="0,0,0,0,0,0,0" />
+    <block type="cube" x="3" y="0.5" z="-2" dir="1" tile="0,0,0,0,0,0,0" />
+    <block type="cube" x="2" y="0.5" z="-2" dir="1" tile="0,0,0,0,0,0,0" />
+  </layer>
+  <routepath />
+</tsumiki>

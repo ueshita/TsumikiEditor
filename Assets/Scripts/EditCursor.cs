@@ -75,7 +75,7 @@ public class EditCursor : MonoBehaviour
 		var meshFilter = shape.prefab.GetComponent<MeshFilter>();
 		this.guide.SetMesh(meshFilter.sharedMesh, null);
 		this.guide.transform.localPosition = Vector3.zero;
-		this.guide.transform.localScale = shape.scale;
+		this.guide.transform.localScale = Vector3.one * shape.scale;
 	}
 
 	// カーソルをモデルの外形にセットする
@@ -85,11 +85,11 @@ public class EditCursor : MonoBehaviour
 		var mesh = meshFilter.sharedMesh;
 		this.guide.SetMesh(this.blockSurfaceMesh, this.blockLineMesh);
 		
-		this.guide.transform.localScale = Vector3.Scale(
-			Vector3.Scale(mesh.bounds.size, model.shape.scale), 
-			new Vector3(1.0f, 2.0f, 1.0f)) * model.scale;
-		this.guide.transform.localPosition = model.offset + Vector3.Scale(
-			mesh.bounds.center, model.shape.scale) * model.scale;
+		this.guide.transform.localScale = 
+			Vector3.Scale(mesh.bounds.size, new Vector3(1.0f, 2.0f, 1.0f)) * 
+			(model.shape.scale * model.scale);
+		this.guide.transform.localPosition = model.offset + 
+			mesh.bounds.center * (model.shape.scale * model.scale);
 
 		this.guide.transform.localRotation = Quaternion.AngleAxis(model.rotation, Vector3.up);
 	}

@@ -10,12 +10,12 @@ public class ModelShape
 	public readonly string name;
 	public readonly int id;
 	public readonly string displayName;
-	public readonly Vector3 scale;
+	public readonly float scale;
 	public readonly GameObject prefab;
 	public readonly bool enterable;
 
 	public ModelShape(string name, int id, string displayName, 
-		GameObject prefab, Vector3 scale, bool enterable
+		GameObject prefab, float scale, bool enterable
 	) {
 		this.name = name;
 		this.id = id;
@@ -48,7 +48,7 @@ public class ModelShape
 			string name = (string)shape["name"];
 			int id = (int)(long)shape["id"];
 			string displayName = (string)shape["displayName"];
-			Vector3 scale = objectToVector(shape["scale"]);
+			float scale = (float)(double)shape["scale"];
 
 			var prefab = Resources.Load<GameObject>("Models/" + name);
 			if (prefab == null) {

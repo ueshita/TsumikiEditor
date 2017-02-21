@@ -1,42 +1,35 @@
 fileFormatVersion: 2
-guid: 298b7713971d0034baf38401017fc952
-timeCreated: 1464425710
+guid: 8358da3d24245384ead3bfdbfa5659f4
+timeCreated: 1486804845
 licenseType: Free
 ModelImporter:
   serializedVersion: 19
   fileIDToRecycleName:
-    100000: //RootNode
-    100002: Xminus
-    100004: Xplus
-    100006: Yminus
-    100008: Yplus
-    100010: Zminus
-    100012: Zplus
-    400000: //RootNode
-    400002: Xminus
-    400004: Xplus
-    400006: Yminus
-    400008: Yplus
-    400010: Zminus
-    400012: Zplus
-    2300000: Xminus
-    2300002: Xplus
-    2300004: Yminus
-    2300006: Yplus
-    2300008: Zminus
-    2300010: Zplus
-    3300000: Xminus
-    3300002: Xplus
-    3300004: Yminus
-    3300006: Yplus
-    3300008: Zminus
-    3300010: Zplus
-    4300000: Yplus
-    4300002: Yminus
-    4300004: Zplus
-    4300006: Zminus
-    4300008: Xplus
-    4300010: Xminus
+    100000: Object
+    100002: //RootNode
+    100004: Xminus
+    100006: Xplus
+    100008: Yminus
+    100010: Yplus
+    100012: Zminus
+    100014: Zplus
+    400000: Object
+    400002: //RootNode
+    400004: Xminus
+    400006: Xplus
+    400008: Yminus
+    400010: Yplus
+    400012: Zminus
+    400014: Zplus
+    2300000: Object
+    2300002: Yminus
+    2300004: Zminus
+    3300000: Object
+    3300002: Yminus
+    3300004: Zminus
+    4300000: Yminus
+    4300002: Zminus
+    4300004: Object
   materials:
     importMaterials: 1
     materialName: 0
@@ -44,7 +37,7 @@ ModelImporter:
   animations:
     legacyGenerateAnimations: 4
     bakeSimulation: 0
-    resampleRotations: 1
+    resampleCurves: 1
     optimizeGameObjects: 0
     motionNodeName: 
     animationImportErrors: 

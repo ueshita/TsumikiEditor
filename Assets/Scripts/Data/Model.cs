@@ -35,7 +35,7 @@ public class Model
 	public void Show() {
 		this.gameObject = GameObject.Instantiate(this.shape.prefab);
 		this.gameObject.transform.parent = EditManager.Instance.CurrentLayer.transform;
-		this.gameObject.transform.localScale = this.shape.scale;
+		this.gameObject.transform.localScale = Vector3.one * this.shape.scale * this.scale;
 		this.gameObject.AddComponent<MeshCollider>();
 		this.SetPosition(this.position);
 		this.SetRotation(this.rotation);
@@ -79,8 +79,7 @@ public class Model
 		scale = Mathf.Clamp(scale, 0.1f, 100.0f);
 		this.scale = scale;
 		if (this.gameObject != null) {
-			this.gameObject.transform.localScale = Vector3.Scale(
-				this.shape.scale, new Vector3(scale, scale, scale));
+			this.gameObject.transform.localScale = Vector3.one * (this.shape.scale * scale);
 		}
 	}
 	
@@ -147,10 +146,10 @@ public class Model
 		
 		var meshFilter = this.gameObject.GetComponent<MeshFilter>();
 		var mesh = meshFilter.sharedMesh;
-		Vector3 localScale = Vector3.Scale(
-			Vector3.Scale(mesh.bounds.size, this.shape.scale), 
-			new Vector3(1.0f, 2.0f, 1.0f)) * this.scale;
-		Vector3 localPosition = Vector3.Scale(mesh.bounds.center, this.shape.scale) * this.scale;
+		Vector3 localScale = 
+			Vector3.Scale(mesh.bounds.size, new Vector3(1.0f, 2.0f, 1.0f)) * 
+			(this.shape.scale * this.scale);
+		Vector3 localPosition = mesh.bounds.center * (this.shape.scale * this.scale);
 		Quaternion localRotation = Quaternion.AngleAxis(this.rotation, Vector3.up);
 		
 		Matrix4x4 matrix = Matrix4x4.TRS(this.position + this.offset + localPosition, localRotation, localScale);

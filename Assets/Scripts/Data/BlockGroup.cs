@@ -171,4 +171,21 @@ public class BlockMeshMerger
 		this.vertexUv.Clear();
 		this.triangles.Clear();
 	}
+
+	public void Merge(Mesh mesh, Vector3 position, BlockDirection direction, int textureId) {
+		var chip = TexturePalette.Instance.GetChip(textureId);
+				
+		int vertexOffset = this.vertexPos.Count;
+		Vector3[] vertexPos = mesh.vertices;
+		Vector2[] vertexUv = mesh.uv;
+		for (int j = 0; j < vertexPos.Length; j++) {
+			Vector3 localPosition = vertexPos[j];
+			this.vertexPos.Add(position + EditUtil.RotatePosition(localPosition, direction));
+			this.vertexUv.Add(chip.ApplyUV(vertexUv[j], position.y));
+		}
+		int[] indices = mesh.GetIndices(0);
+		for (int j = 0; j < indices.Length; j++) {
+			this.triangles.Add(vertexOffset + indices[j]);
+		}
+	}
 };

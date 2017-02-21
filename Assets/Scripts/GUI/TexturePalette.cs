@@ -24,7 +24,7 @@ public class TexturePalette : MonoBehaviour, IPointerClickHandler
 			this.uv1 = uv1;
 			this.uv2 = uv2;
 		}
-		public Vector2 ApplyUV(Vector2 uv, BlockDirection direction, float height) {
+		public Vector2 ApplyUV(Vector2 uv, float height) {
 			return new Vector2(
 				uv1.x + (uv2.x - uv1.x) *  uv.x, 
 				uv1.y + (uv2.y - uv1.y) *  uv.y);
