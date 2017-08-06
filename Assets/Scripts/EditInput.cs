@@ -79,7 +79,9 @@ public class EditInput : MonoBehaviour,
 			// カット
 			if (e.keyCode == KeyCode.X) {
 				EditManager.Instance.Selector.CopyToClipboard();
-				EditManager.Instance.RemoveBlocks(EditManager.Instance.Selector.GetSelectedBlocks());
+				EditManager.Instance.RemoveObjects(
+					EditManager.Instance.Selector.GetSelectedBlocks(),
+					EditManager.Instance.Selector.GetSelectedModels());
 			}
 			// コピー
 			if (e.keyCode == KeyCode.C) {
@@ -174,6 +176,7 @@ public class EditInput : MonoBehaviour,
 
 	public void OnPointerClick(PointerEventData e) {
 		if (e.button == 0) {
+			EditManager.Instance.Cursor.Update();
 			// ブロックをクリック
 			this.OnObjectClicked();
 		}
@@ -200,6 +203,7 @@ public class EditInput : MonoBehaviour,
 	// ドラッグ中
 	public void OnDrag(PointerEventData e) {
 		if (e.button == 0) {
+			this.OnObjectDrag();
 		} else {
 			this.cameraController.OnDrag((int)e.button, e.position);
 		}
@@ -219,7 +223,7 @@ public class EditInput : MonoBehaviour,
 		case EditManager.Tool.Block:
 			if (cursor.visible) {
 				// 1つ手前にブロックを配置
-				EditManager.Instance.AddBlock(0, cursor.point, 
+				EditManager.Instance.AddBlock(cursor.point, 
 					EditManager.Instance.Cursor.blockDirection);
 			}
 			break;
@@ -227,9 +231,9 @@ public class EditInput : MonoBehaviour,
 			// 選択されたオブジェクトを消す
 			if (cursor.visible) {
 				if (cursor.block != null) {
-					EditManager.Instance.RemoveBlock(0, cursor.point);
+					EditManager.Instance.RemoveBlock(cursor.point);
 				} else if (cursor.model != null) {
-					EditManager.Instance.RemoveModel(0, cursor.model);
+					EditManager.Instance.RemoveModel(cursor.model);
 				}
 			}
 			break;
@@ -238,7 +242,9 @@ public class EditInput : MonoBehaviour,
 				// 対象のブロックを塗る(テクスチャ指定)
 				var block = EditManager.Instance.CurrentLayer.GetBlock(cursor.point);
 				if (block != null) {
-					EditManager.Instance.PaintBlock(block, EditManager.Instance.Cursor.panelDirection, TexturePalette.Instance.GetItem());
+					EditManager.Instance.PaintBlock(block, 
+						cursor.panelDirection, cursor.objectSelected,
+						TexturePalette.Instance.GetItem());
 				}
 			}
 			break;
@@ -247,7 +253,7 @@ public class EditInput : MonoBehaviour,
 				// 対象のブロックのテクスチャを取得
 				var block = EditManager.Instance.CurrentLayer.GetBlock(cursor.point);
 				if (block != null) {
-					TexturePalette.Instance.SetItem(block.GetTextureChip(EditManager.Instance.Cursor.panelDirection));
+					TexturePalette.Instance.SetItem(block.GetTextureChip(cursor.panelDirection, cursor.objectSelected));
 				}
 			}
 			break;
@@ -316,7 +322,7 @@ public class EditInput : MonoBehaviour,
 				var foundModel = EditManager.Instance.CurrentLayer.GetModel(cursor.point);
 				if (foundModel == null) {
 					// モデル配置
-					EditManager.Instance.AddModel(0, cursor.point);
+					EditManager.Instance.AddModel(cursor.point);
 				}
 			}
 			break;
@@ -331,6 +337,26 @@ public class EditInput : MonoBehaviour,
 					// メタ情報記入のダイアログを表示
 					EditManager.Instance.MetaInfo.gameObject.SetActive(true);
 					EditManager.Instance.MetaInfo.SetBlock(block);
+				}
+			}
+			break;
+		}
+	}
+	
+	// オブジェクトをクリック
+	public void OnObjectDrag() {
+		var selector = EditManager.Instance.Selector;
+		var cursor = EditManager.Instance.Cursor;
+
+		switch (EditManager.Instance.GetTool()) {
+		case EditManager.Tool.Brush:
+			if (cursor.visible) {
+				// 対象のブロックを塗る(テクスチャ指定)
+				var block = EditManager.Instance.CurrentLayer.GetBlock(cursor.point);
+				if (block != null) {
+					EditManager.Instance.PaintBlock(block, 
+						cursor.panelDirection, cursor.objectSelected,
+						TexturePalette.Instance.GetItem());
 				}
 			}
 			break;

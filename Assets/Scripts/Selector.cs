@@ -36,7 +36,7 @@ public class Selector : MonoBehaviour
 		Paste,
 	};
 
-	void Start() {
+	void Awake() {
 		var blockGuideObj = new GameObject();
 		blockGuideObj.name = "SelectedBlocks";
 		blockGuideObj.transform.parent = this.transform;
@@ -79,6 +79,22 @@ public class Selector : MonoBehaviour
 		}
 	}
 
+	// 現在のレイヤーを設定
+	public void SetCurrentLayer(EditLayer layer) {
+		var originalRenderer = layer.GetComponent<MeshRenderer>();
+		if (originalRenderer == null) {
+			Debug.LogError("Renderer not found in Original Layer.");
+			return;
+		}
+		var captureRenderer = this.captureLayer.GetComponent<MeshRenderer>();
+		if (captureRenderer == null) {
+			Debug.LogError("Renderer not found in Capture Layer.");
+			return;
+		}
+		captureRenderer.material = originalRenderer.material;
+	}
+
+	// 変更したことを知らせる
 	public void SetDirty() {
 		this.dirtyMesh = true;
 	}
@@ -187,34 +203,6 @@ public class Selector : MonoBehaviour
 		this.LastPosition = end;
 	}
 
-	// スクリーンの上方向と右方向を指すワールド方向を取得
-	public void ScreenDirToWorldDir(out Vector3 up, out Vector3 right) {
-		Vector3 upDir = Camera.main.transform.up;
-		Vector3 rightDir = Camera.main.transform.right;
-		
-		Vector3[] worldDir = new Vector3[]{Vector3.up*0.5f, Vector3.down*0.5f, Vector3.right, Vector3.left, Vector3.forward, Vector3.back};
-		
-		int upDirIndex = -1, rightDirIndex = -1;
-		float upDirDot = -1.0f, rightDirDot = -1.0f;
-		for (int i = 0; i < worldDir.Length; i++) {
-			float dot = Vector3.Dot(upDir, worldDir[i].normalized);
-			if (dot > upDirDot) {
-				upDirIndex = i;
-				upDirDot = dot;
-			}
-		}
-		for (int i = 0; i < worldDir.Length; i++) {
-			float dot = Vector3.Dot(rightDir, worldDir[i].normalized);
-			if (dot > rightDirDot) {
-				rightDirIndex = i;
-				rightDirDot = dot;
-			}
-		}
-		
-		up = worldDir[upDirIndex];
-		right = worldDir[rightDirIndex];
-	}
-
 	// 選択ブロックを移動
 	public void Move(Vector2 screenDir) {
 		if (!this.HasCapturedBlocks()) {
@@ -222,7 +210,7 @@ public class Selector : MonoBehaviour
 		}
 
 		Vector3 up, right;
-		ScreenDirToWorldDir(out up, out right);
+		EditUtil.ScreenDirToWorldDir(out up, out right);
 		this.transform.position = this.transform.position + up * screenDir.y + right * screenDir.x;
 	}
 	
@@ -246,7 +234,7 @@ public class Selector : MonoBehaviour
 		}
 
 		Vector3 up, right;
-		ScreenDirToWorldDir(out up, out right);
+		EditUtil.ScreenDirToWorldDir(out up, out right);
 		Vector3 expandVector =  up * screenDir.y + right * screenDir.x;
 
 		foreach (var point in this.selectedBlocks.GetAllBlocks()) {

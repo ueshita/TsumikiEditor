@@ -1,0 +1,44 @@
+﻿<tsumiki version="1.01">
+  <layer name="Layer-Blocks">
+    <block type="cube" x="0" y="0" z="-1" dir="0" tile="0,0,0,0,1,0" />
+    <block type="cube" x="1" y="0" z="-1" dir="0" tile="0,0,0,0,0,0" />
+    <block type="cube" x="2" y="0" z="-1" dir="0" tile="0,0,0,0,0,0" />
+    <block type="cube" x="2" y="0" z="-2" dir="0" tile="0,0,0,0,0,0" />
+    <block type="cube" x="3" y="0" z="-2" dir="0" tile="0,0,0,0,1,0" />
+    <block type="cube" x="3" y="0" z="-1" dir="0" tile="0,0,0,0,1,0" />
+    <block type="cube" x="3" y="0" z="-3" dir="0" tile="0,0,0,0,2,0" />
+    <block type="cube" x="4" y="0" z="-3" dir="0" tile="0,0,0,0,2,0" />
+    <block type="cube" x="3" y="0" z="-4" dir="0" tile="0,0,0,0,2,0" />
+    <block type="cube" x="4" y="0" z="-4" dir="0" tile="0,0,0,0,2,0" />
+    <block type="cube" x="2" y="0" z="-3" dir="0" tile="0,0,0,0,1,0" />
+    <block type="cube" x="2" y="0" z="-4" dir="0" tile="0,0,0,0,1,0" />
+    <block type="cube" x="1" y="0" z="-2" dir="0" tile="0,0,0,0,0,0" />
+    <block type="cube" x="1" y="0" z="-3" dir="0" tile="0,0,0,0,1,0" />
+    <block type="cube" x="1" y="0" z="-4" dir="0" tile="0,0,0,0,1,0" />
+    <block type="cube" x="0" y="0" z="-2" dir="0" tile="0,0,0,0,1,0" />
+    <block type="cube" x="0" y="0" z="-3" dir="0" tile="0,0,0,0,1,0" />
+    <block type="cube" x="0" y="0" z="-4" dir="0" tile="0,0,0,0,1,0" />
+    <block type="slope" x="2" y="0.5" z="-2" dir="0" tile="0,0,0,0,401,0" />
+    <block type="slope" x="1" y="0.5" z="-2" dir="0" tile="0,0,0,0,401,0" />
+    <block type="cube" x="2" y="0.5" z="-1" dir="0" tile="0,0,0,0,401,0" />
+    <block type="cube" x="1" y="0.5" z="-1" dir="0" tile="0,0,0,0,401,0" />
+    <block type="cube" x="4" y="0" z="-1" dir="0" tile="0,0,0,0,0,0" />
+    <block type="cube" x="4" y="0.5" z="-1" dir="0" tile="0,0,0,402,0,0" />
+    <block type="cube" x="4" y="1" z="-1" dir="0" tile="0,0,0,402,0,0" />
+    <block type="cube" x="4" y="1.5" z="-1" dir="0" tile="0,0,0,402,0,0" />
+    <block type="cube" x="4" y="2" z="-1" dir="0" tile="0,0,0,402,0,0" />
+    <block type="cube" x="4" y="2.5" z="-1" dir="0" tile="0,0,0,402,0,0" />
+    <block type="cube" x="4" y="3" z="-1" dir="0" tile="0,0,0,402,0,0" />
+    <block type="cube" x="4" y="0" z="-2" dir="0" tile="0,0,0,0,0,0" />
+    <block type="cube" x="4" y="0.5" z="-2" dir="0" tile="402,0,0,402,0,0" />
+    <block type="cube" x="4" y="1" z="-2" dir="0" tile="402,0,0,402,0,0" />
+    <block type="cube" x="4" y="1.5" z="-2" dir="0" tile="402,0,0,402,0,0" />
+    <block type="cube" x="4" y="2" z="-2" dir="0" tile="402,0,0,402,0,0" />
+    <block type="cube" x="4" y="2.5" z="-2" dir="0" tile="402,0,0,402,0,0" />
+    <block type="cube" x="4" y="3" z="-2" dir="0" tile="402,0,0,402,0,0" />
+    <block type="cube" x="4" y="3.5" z="-1" dir="0" tile="0,0,0,402,0,0" />
+    <block type="cube" x="4" y="3.5" z="-2" dir="0" tile="402,0,0,402,0,0" />
+  </layer>
+  <layer name="Layer-Water" />
+  <routepath />
+</tsumiki>

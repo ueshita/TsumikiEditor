@@ -239,27 +239,48 @@ public static class E3DExporter
 		}
 	}
 
-	public static void Export(string path, BlockGroup blockGroup, ModelGroup modelGroup) {
-		
+	public static void Export(string path) {
 		bool toRightHanded = EditManager.Instance.IsRightHanded();
 		Vector3 offset = new Vector3(0.5f, 0.25f, -0.5f);
 		
-		WriteModelFile(path, blockGroup, offset, toRightHanded);
+		WriteModelFile(path, offset, toRightHanded);
 		
 		string metaFilePath = Path.ChangeExtension(path, ".dat");
-		WriteMetaFile(metaFilePath, blockGroup, modelGroup, offset, toRightHanded);
+		WriteMetaFile(metaFilePath, offset, toRightHanded);
 	}
 
-	private static void WriteModelFile(string path, BlockGroup blockGroup, Vector3 offset, bool toRightHanded) {
-		Mesh mesh = blockGroup.GetSurfaceMesh();
-		int[] indices = mesh.GetIndices(0);
-		if (indices.Length > ushort.MaxValue) {
-			Debug.LogError("Indices count is over than 65535.");
-			return;
-		}
+	private static void WriteModelFile(string path, Vector3 offset, bool toRightHanded) {
+		Vector3 center = Vector3.zero;
+		Vector3 size = Vector3.zero;
+		
+		var vertexData = new List<StaticMeshVertex>();
+		var indexData = new List<int>();
 
-		var vertices = new StaticMeshVertex[mesh.vertexCount];
-		{
+		int numLayers = EditManager.Instance.Layers.Count;
+		int[] batchIndexOffset = new int[numLayers];
+		int[] batchIndexCount = new int[numLayers];
+
+		for (int layerId = 0; layerId < numLayers; layerId++) {
+			var blockGroup = EditManager.Instance.Layers[layerId].GetBlockGroup();
+			Mesh mesh = blockGroup.GetSurfaceMesh();
+			
+			if (layerId == 0) {
+				center = mesh.bounds.center + offset;
+				size = mesh.bounds.size;
+			}
+
+			
+			int[] indices = mesh.GetIndices(0);
+			for (int i = 0; i < indices.Length; i++) {
+				indices[i] += vertexData.Count;
+			}
+			
+			batchIndexOffset[layerId] = indexData.Count;
+			batchIndexCount[layerId] = indices.Length;
+			
+			indexData.AddRange(indices);
+
+			var vertices = new StaticMeshVertex[mesh.vertexCount];
 			Vector3[] positions = mesh.vertices;
 			Vector3[] normals = mesh.normals;
 			Vector2[] texCoords = mesh.uv;
@@ -274,16 +295,20 @@ public static class E3DExporter
 					vertices[i].normal = FileUtil.ApplyRightHanded(vertices[i].normal);
 				}
 			}
+			vertexData.AddRange(vertices);
+		}
+
+		if (vertexData.Count > ushort.MaxValue) {
+			Debug.LogError("Vertex count is over than 65535.");
+			return;
 		}
 
 		var mem = new MemoryStream();
 		var writer = new BinaryWriter(mem);
 		
-		int vertexCount = vertices.Length;
-		int indexCount = indices.Length;
 		int textureCount = 0;
-		int materialCount = 1;
-		int batchCount = 1;
+		int materialCount = numLayers;
+		int batchCount = numLayers;
 		
 		writer.Write(Encoding.UTF8.GetBytes("E3D3"));
 		writer.Write(StaticMeshVertex.GetSize());			// VertexSize
@@ -295,11 +320,11 @@ public static class E3DExporter
 		writer.Write(0);								// BoneCount
 		writer.Write(0);								// AnimClipCount
 
-		writer.Write(vertexCount * StaticMeshVertex.GetSize());		// VertexDataSize
-		writer.Write(indexCount * 2);								// IndexDataSize
+		writer.Write(vertexData.Count * StaticMeshVertex.GetSize());	// VertexDataSize
+		writer.Write(indexData.Count * 2);								// IndexDataSize
 
-		writer.Write(mesh.bounds.center);
-		writer.Write(mesh.bounds.size);
+		writer.Write(center);
+		writer.Write(size);
 		
 		// AttribInfo
 		var attribs = new ShaderAttrib[]{
@@ -312,28 +337,32 @@ public static class E3DExporter
 		}
 
 		// MaterialInfo
-		writer.Write(new Color(0.8f, 0.8f, 0.8f, 1.0f));	// diffuseColor
-		writer.Write(new Color(0.4f, 0.4f, 0.4f, 1.0f));	// ambientColor
-		writer.Write(new Color(0.0f, 0.0f, 0.0f, 1.0f));	// emissionColor
-		writer.Write(new Color(0.0f, 0.0f, 0.0f, 1.0f));	// specularColor
-		writer.Write(0.0f);									// shiniess
-		writer.Write(-1);									// TextureId0
-		writer.Write(-1);									// TextureId1
-		writer.Write(-1);									// TextureId2
-		writer.Write(-1);									// TextureId3
+		for (int i = 0; i < numLayers; i++) {
+			writer.Write(new Color(0.8f, 0.8f, 0.8f, 1.0f));	// diffuseColor
+			writer.Write(new Color(0.4f, 0.4f, 0.4f, 1.0f));	// ambientColor
+			writer.Write(new Color(0.0f, 0.0f, 0.0f, 1.0f));	// emissionColor
+			writer.Write(new Color(0.0f, 0.0f, 0.0f, 1.0f));	// specularColor
+			writer.Write(0.0f);									// shiniess
+			writer.Write(-1);									// TextureId0
+			writer.Write(-1);									// TextureId1
+			writer.Write(-1);									// TextureId2
+			writer.Write(-1);									// TextureId3
+		}
 
 		// BatchInfo
-		writer.Write(0);				// IndexOffset
-		writer.Write(indices.Length);	// IndexCount
-		writer.Write(0);				// MaterialId
+		for (int i = 0; i < numLayers; i++) {
+			writer.Write(batchIndexOffset[i]);	// IndexOffset
+			writer.Write(batchIndexCount[i]);	// IndexCount
+			writer.Write(i);					// MaterialId
+		}
 
 		// Output Vertices
-		for (int i = 0; i < vertices.Length; i++) {
-			vertices[i].Write(writer);
+		for (int i = 0; i < vertexData.Count; i++) {
+			vertexData[i].Write(writer);
 		}
 		// Output Indeces
-		for (int i = 0; i < indices.Length; i++) {
-			writer.Write((ushort)indices[i]);
+		for (int i = 0; i < indexData.Count; i++) {
+			writer.Write((ushort)indexData[i]);
 		}
 
 		writer.Flush();
@@ -342,10 +371,12 @@ public static class E3DExporter
 		File.WriteAllBytes(path, mem.ToArray());
 	}
 	
-	private static void WriteMetaFile(string path, 
-		BlockGroup blockGroup, ModelGroup modelGroup, 
+	private static void WriteMetaFile(string path,
 		Vector3 offset, bool toRightHanded)
 	{
+		BlockGroup blockGroup = EditManager.Instance.Layers[0].GetBlockGroup();
+		ModelGroup modelGroup = EditManager.Instance.Layers[0].GetModelGroup();
+
 		Mesh mesh = blockGroup.GetRouteMesh();
 		Block[] blocks = blockGroup.GetEnterableBlocks();
 		

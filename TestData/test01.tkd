@@ -1,4 +1,4 @@
-﻿<tsumiki version="1.00.00">
+﻿<tsumiki version="1.00">
   <layer name="layer">
     <block type="slope" x="0" y="0" z="0" dir="0" />
     <block type="diag-slope2" x="1" y="0" z="0" dir="2" />

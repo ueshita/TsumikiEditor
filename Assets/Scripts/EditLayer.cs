@@ -1,28 +1,37 @@
 ﻿using UnityEngine;
+using UnityEngine.Rendering;
 using System.Collections;
 using System.Collections.Generic;
 using System.Xml;
+using System;
 
 // レイヤー内のブロックを表示するクラス
 public class EditLayer : MonoBehaviour
 {
-	protected BlockGroup blockGroup = new BlockGroup();
+	private BlockGroup blockGroup = new BlockGroup();
 	private ModelGroup modelGroup = new ModelGroup();
 	bool dirtyMesh = false;
 	
-	void Start() {
+	void Awake() {
 		this.gameObject.AddComponent<MeshFilter>();
 		this.gameObject.AddComponent<MeshCollider>();
-		var meshRenderer = this.gameObject.AddComponent<MeshRenderer>();
-		var material = Resources.Load<Material>("Materials/BlockMaterial");
-		meshRenderer.material = material;
-		material.mainTexture = Resources.Load<Texture>("Textures/01");
+		this.gameObject.AddComponent<MeshRenderer>();
 	}
 
 	void Update() {
 		if (this.dirtyMesh) {
 			this.UpdateMesh();
 		}
+	}
+	
+	public void SetMaterial(string materialName, string textureName) {
+		var material = Resources.Load<Material>("Materials/" + materialName);
+		if (!String.IsNullOrEmpty(textureName)) {
+			material.mainTexture = Resources.Load<Texture>("Textures/" + textureName);
+		}
+		var meshRenderer = this.GetComponent<MeshRenderer>();
+		meshRenderer.material = material;
+		meshRenderer.shadowCastingMode = ShadowCastingMode.TwoSided;
 	}
 
 	public void Clear() {
@@ -41,13 +50,20 @@ public class EditLayer : MonoBehaviour
 	}
 	
 	// ブロックの追加(複数)
-	public void AddBlocks(Block[] blocks) {
+	public Block[] AddBlocks(Block[] blocks) {
+		var removedBlocks = new List<Block>();
 		foreach (var block in blocks) {
+			Block foundBlock = this.blockGroup.GetBlock(block.position);
+			if (foundBlock != null) {
+				this.blockGroup.RemoveBlock(foundBlock);
+				removedBlocks.Add(foundBlock);
+			}
 			this.blockGroup.AddBlock(block);
 		}
 		this.dirtyMesh = true;
+		return removedBlocks.ToArray();
 	}
-
+	
 	// ブロックの削除
 	public void RemoveBlock(Block block) {
 		this.blockGroup.RemoveBlock(block);
@@ -86,10 +102,17 @@ public class EditLayer : MonoBehaviour
 	}
 	
 	// モデルの複数(複数)
-	public void AddModels(Model[] models) {
+	public Model[] AddModels(Model[] models) {
+		var removedModels = new List<Model>();
 		foreach (var model in models) {
+			Model foundModel = this.modelGroup.GetModel(model.position);
+			if (foundModel != null) {
+				this.modelGroup.RemoveModel(model, true);
+				removedModels.Add(foundModel);
+			}
 			this.modelGroup.AddModel(model);
 		}
+		return removedModels.ToArray();
 	}
 
 	// モデルの削除

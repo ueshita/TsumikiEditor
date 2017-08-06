@@ -7,8 +7,8 @@ using System.Collections.Generic;
 [RequireComponent(typeof(Image))]
 public class TexturePalette : MonoBehaviour, IPointerClickHandler
 {
-	private readonly Vector2 tileSize = new Vector2(80, 80);
-	private readonly Vector2 viewArea = new Vector2(64, 64);
+	private readonly Vector2 tileSize = new Vector2(128, 128);
+	private readonly Vector2 viewArea = new Vector2(112, 112);
 	
 	public static TexturePalette Instance {get; private set;}
 
@@ -24,18 +24,14 @@ public class TexturePalette : MonoBehaviour, IPointerClickHandler
 			this.uv1 = uv1;
 			this.uv2 = uv2;
 		}
-		public Vector2 ApplyUV(Vector2 uv, float height) {
-			return new Vector2(
-				uv1.x + (uv2.x - uv1.x) *  uv.x, 
-				uv1.y + (uv2.y - uv1.y) *  uv.y);
-			/*if (direction == BlockDirection.Yplus || direction == BlockDirection.Yminus) {
-				return new Vector2(
-					uv1.x + (uv2.x - uv1.x) *  uv.x, 
-					uv1.y + (uv2.y - uv1.y) *  uv.y);
-			} else {
+		public Vector2 ApplyUV(Vector2 uv, int meshIndex, float height) {
+			uv.y = 1.0f - uv.y;
+			if (meshIndex >= (int)BlockDirection.Zplus && 
+				meshIndex <= (int)BlockDirection.Xminus
+			) {
 				float uarea = uv2.x - uv1.x;
 				float varea = uv2.y - uv1.y;
-				if (height - Mathf.Floor(height) < 0.5f) {
+				if (height - Mathf.Floor(height) >= 0.5f) {
 					return new Vector2(
 						(uv1.x + uarea * uv.x), 
 						(uv1.y + varea * 0.5f * uv.y));
@@ -44,7 +40,11 @@ public class TexturePalette : MonoBehaviour, IPointerClickHandler
 						(uv1.x +  uarea * uv.x), 
 						(uv1.y + varea * 0.5f * uv.y + varea * 0.5f));
 				}
-			}*/
+			} else {
+				return new Vector2(
+					uv1.x + (uv2.x - uv1.x) *  uv.x, 
+					uv1.y + (uv2.y - uv1.y) *  uv.y);
+			}
 		}
 	}
 

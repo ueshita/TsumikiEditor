@@ -14,10 +14,10 @@ public class BlockPalette : MonoBehaviour
 		var content = viewport.transform.FindChild("Content") as RectTransform;
 		
 		const float buttonHeight = 30.0f;
-		content.sizeDelta = new Vector2(content.sizeDelta.x, BlockShape.palette.Length * buttonHeight);
+		content.sizeDelta = new Vector2(content.sizeDelta.x, BlockShape.palette.Count * buttonHeight);
 		Vector2 offsetPosition = new Vector2(0, content.rect.height / 2);
 		
-		for (int i = 0; i < BlockShape.palette.Length; i++) {
+		for (int i = 0; i < BlockShape.palette.Count; i++) {
 			int index = i;
 
 			var node = GameObject.Instantiate(nodePrefab) as RectTransform;
@@ -60,9 +60,5 @@ public class BlockPalette : MonoBehaviour
 		
 		// セット
 		EditManager.Instance.SetToolBlock(BlockShape.palette[this.value].name);
-	}
-	
-	void Update() {
-		
 	}
 }

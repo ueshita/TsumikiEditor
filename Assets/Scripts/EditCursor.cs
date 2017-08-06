@@ -7,6 +7,7 @@ public class EditCursor : MonoBehaviour
 	public Vector3 point {get; private set;}
 	public BlockDirection blockDirection {get; private set;}
 	public BlockDirection panelDirection {get; private set;}
+	public bool objectSelected {get; private set;}
 	
 	public Block block {get; private set;}
 	public Model model {get; private set;}
@@ -150,17 +151,46 @@ public class EditCursor : MonoBehaviour
 				this.point = point;
 				// 面カーソルを置く
 				visible = true;
-				this.transform.position = point + new Vector3(normal.x * 0.5f, normal.y * 0.25f, normal.z * 0.5f);
 				this.panelDirection = EditUtil.VectorToDirection(normal);
-				if (this.panelDirection == BlockDirection.Yplus) {
+				var block = EditManager.Instance.CurrentLayer.GetBlock(point);
+				if (block.GetMesh(this.panelDirection) != null) {
+					// 面のメッシュが存在していたら、面が選択されている
+					this.objectSelected = false;
+					this.SetPanel();
+					this.transform.position = point + new Vector3(normal.x * 0.5f, normal.y * 0.25f, normal.z * 0.5f);
+					switch (this.panelDirection) {
+					case BlockDirection.Yplus:
+						this.transform.rotation = Quaternion.identity;
+						this.transform.localScale = Vector3.one;
+						break;
+					case BlockDirection.Yminus:
+						this.transform.rotation = Quaternion.Euler(180, 0, 0);
+						this.transform.localScale = Vector3.one;
+						break;
+					case BlockDirection.Zplus:
+						this.transform.rotation = Quaternion.Euler(90, 180, 0);
+						this.transform.localScale = new Vector3(1.0f, 1.0f, 0.5f);
+						break;
+					case BlockDirection.Zminus:
+						this.transform.rotation = Quaternion.Euler(90, 0, 0);
+						this.transform.localScale = new Vector3(1.0f, 1.0f, 0.5f);
+						break;
+					case BlockDirection.Xplus:
+						this.transform.rotation = Quaternion.Euler(90, 90, 0);
+						this.transform.localScale = new Vector3(1.0f, 1.0f, 0.5f);
+						break;
+					case BlockDirection.Xminus:
+						this.transform.rotation = Quaternion.Euler(90, 270, 0);
+						this.transform.localScale = new Vector3(1.0f, 1.0f, 0.5f);
+						break;
+					}
+				} else {
+					// 面のメッシュが存在していないなら、オブジェクトが選択されている
+					this.objectSelected = true;
+					this.SetBlock();
+					this.transform.position = point;
 					this.transform.rotation = Quaternion.identity;
 					this.transform.localScale = Vector3.one;
-				} else if (this.panelDirection == BlockDirection.Yminus) {
-					this.transform.rotation = Quaternion.Euler(180, 0, 0);
-					this.transform.localScale = Vector3.one;
-				} else {
-					this.transform.rotation = Quaternion.Euler(90, EditUtil.DirectionToAngle(this.panelDirection), 0);
-					this.transform.localScale = new Vector3(1.0f, 1.0f, 0.5f);
 				}
 			}
 			break;

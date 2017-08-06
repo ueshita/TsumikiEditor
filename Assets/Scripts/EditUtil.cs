@@ -36,12 +36,12 @@ public class EditUtil
 		new Vector3( 0.5f, -0.25f, -0.5f), 
 	};
 	public static readonly int[] cubeQuadIndices = {
-		0, 4, 5, 1, 3, 7, 6, 2, 
+		3, 7, 6, 2, 0, 4, 5, 1,
 		1, 5, 7, 3, 2, 6, 4, 0,
 		2, 0, 1, 3, 4, 6, 7, 5,
 	};
 	public static readonly int[] cubeLineIndices = {
-		0, 1, 2, 3, 0, 2, 1, 3,
+		0, 2, 1, 3, 0, 1, 2, 3,
 		4, 5, 6, 7, 4, 6, 5, 7,
 		0, 4, 1, 5, 2, 6, 3, 7
 	};
@@ -130,7 +130,7 @@ public class EditUtil
 	
 	// ベクトル方向をブロック方向に変換
 	public static BlockDirection VectorToDirection(Vector3 vector) {
-		float f = Vector3.Dot(vector, Vector3.forward);
+		float f = Vector3.Dot(vector, EditManager.Instance.ToWorldCoordinate(Vector3.forward));
 		if (f >  0.5f) return BlockDirection.Zplus;
 		if (f < -0.5f) return BlockDirection.Zminus;
 		float r = Vector3.Dot(vector, Vector3.right);
@@ -203,8 +203,8 @@ public class EditUtil
 	private static readonly int[][] RotatePanelVertexIndexTable = new int[][] {
 		new int[] {0, 1, 2, 3}, 
 		new int[] {3, 2, 1, 0}, 
-		new int[] {1, 3, 0, 2}, 
 		new int[] {2, 0, 3, 1}, 
+		new int[] {1, 3, 0, 2}, 
 	};
 	public static int RotatePanelVertexIndex(int vertexIndex, BlockDirection direction) {
 		switch (direction) {
@@ -224,6 +224,35 @@ public class EditUtil
 		}
 		return vertexIndex;
 	}
+
+	// スクリーンの上方向と右方向を指すワールド方向を取得
+	public static void ScreenDirToWorldDir(out Vector3 up, out Vector3 right) {
+		Vector3 upDir = Camera.main.transform.up;
+		Vector3 rightDir = Camera.main.transform.right;
+		
+		Vector3[] worldDir = new Vector3[]{Vector3.up*0.5f, Vector3.down*0.5f, Vector3.right, Vector3.left, Vector3.forward, Vector3.back};
+		
+		int upDirIndex = -1, rightDirIndex = -1;
+		float upDirDot = -1.0f, rightDirDot = -1.0f;
+		for (int i = 0; i < worldDir.Length; i++) {
+			float dot = Vector3.Dot(upDir, worldDir[i].normalized);
+			if (dot > upDirDot) {
+				upDirIndex = i;
+				upDirDot = dot;
+			}
+		}
+		for (int i = 0; i < worldDir.Length; i++) {
+			float dot = Vector3.Dot(rightDir, worldDir[i].normalized);
+			if (dot > rightDirDot) {
+				rightDirIndex = i;
+				rightDirDot = dot;
+			}
+		}
+		
+		up = worldDir[upDirIndex];
+		right = worldDir[rightDirIndex];
+	}
+
 }
 
 public struct Vector3i

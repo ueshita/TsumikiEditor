@@ -1,47 +1,42 @@
 fileFormatVersion: 2
-guid: 397378f03bef39d4483c37bb1251cac8
-timeCreated: 1486513663
+guid: cfef02a4efbe78b41ab25254703c5c0b
+timeCreated: 1502026280
 licenseType: Free
 ModelImporter:
   serializedVersion: 19
   fileIDToRecycleName:
-    100000: Object
-    100002: //RootNode
-    100004: Xminus
-    100006: Xplus
-    100008: Yminus
-    100010: Yplus
-    100012: Zminus
-    100014: Zplus
-    400000: Object
-    400002: //RootNode
-    400004: Xminus
-    400006: Xplus
-    400008: Yminus
-    400010: Yplus
-    400012: Zminus
-    400014: Zplus
-    2300000: Object
-    2300002: Xminus
-    2300004: Xplus
-    2300006: Yminus
-    2300008: Yplus
-    2300010: Zminus
-    2300012: Zplus
-    3300000: Object
-    3300002: Xminus
-    3300004: Xplus
-    3300006: Yminus
-    3300008: Yplus
-    3300010: Zminus
-    3300012: Zplus
+    100000: //RootNode
+    100002: Xminus
+    100004: Xplus
+    100006: Yminus
+    100008: Yplus
+    100010: Zminus
+    100012: Zplus
+    400000: //RootNode
+    400002: Xminus
+    400004: Xplus
+    400006: Yminus
+    400008: Yplus
+    400010: Zminus
+    400012: Zplus
+    2300000: Xminus
+    2300002: Xplus
+    2300004: Yminus
+    2300006: Yplus
+    2300008: Zminus
+    2300010: Zplus
+    3300000: Xminus
+    3300002: Xplus
+    3300004: Yminus
+    3300006: Yplus
+    3300008: Zminus
+    3300010: Zplus
     4300000: Yplus
     4300002: Yminus
     4300004: Zplus
     4300006: Zminus
     4300008: Xplus
     4300010: Xminus
-    4300012: Object
   materials:
     importMaterials: 1
     materialName: 0
@@ -52,6 +47,8 @@ ModelImporter:
     resampleCurves: 1
     optimizeGameObjects: 0
     motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
     animationImportErrors: 
     animationImportWarnings: 
     animationRetargetingWarnings: 
@@ -88,6 +85,7 @@ ModelImporter:
   importAnimation: 1
   copyAvatar: 0
   humanDescription:
+    serializedVersion: 2
     human: []
     skeleton: []
     armTwist: 0.5
@@ -98,7 +96,10 @@ ModelImporter:
     legStretch: 0.05
     feetSpacing: 0
     rootMotionBoneName: 
+    rootMotionBoneRotation: {x: 0, y: 0, z: 0, w: 1}
     hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
   lastHumanDescriptionAvatarSource: {instanceID: 0}
   animationType: 0
   humanoidOversampling: 1

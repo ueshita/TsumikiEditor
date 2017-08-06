@@ -7,11 +7,13 @@ using System.IO;
 
 public enum BlockConnection {
 	None				= 0,
-	Square				= 1,
-	Slope				= 3,
-	SteepSlopeTop		= 4,
-	SteepSlopeBtm		= 5,
-	Stair				= 6,
+	Square				= 1,	// 四角面
+	Half				= 2,	// 半四角面(横)
+	HalfVertical		= 19,	// 半四角面(縦)
+	Slope				= 3,	// 斜面
+	SteepSlopeTop		= 4,	// 急斜面(上)
+	SteepSlopeBtm		= 5,	// 急斜面(下)
+	Stair				= 6,	// 階段
 	Fence				= 7,
 	Arch				= 8,
 	ArcSquare			= 9,
@@ -25,7 +27,9 @@ public enum BlockConnection {
 	Triangle1			= 14,
 	Triangle2			= 15,
 
-	Pipe2				= 17,
+	Pipe2				= 17,	// パイプ(2本)
+	ReverseSlope		= 18,	// 天井斜面
+	
 }
 public class BlockShape
 {
@@ -48,12 +52,12 @@ public class BlockShape
 	public Mesh[] meshes {get; private set;}
 	public float[] panelVertices {get; private set;}
 
-	public bool autoPlacement {get; private set;}
-	public BlockShape[] subShapes {get; private set;}
-
-	public BlockShape(string name, string displayName, 
+	public bool autoPlacement {get; private set;}	// 自動配置
+	public int wall {get; private set;}				// 壁タイプ
+	
+	public bool Init(string name, string displayName, 
 		BlockConnection[] connection, BlockDirection[] connectionDir, 
-		float[] panelVertices, bool autoPlacement
+		float[] panelVertices, bool autoPlacement, int wall
 	) {
 		this.name = name;
 		this.displayName = displayName;
@@ -61,9 +65,30 @@ public class BlockShape
 		this.connectionDir = connectionDir;
 		this.panelVertices = panelVertices;
 		this.autoPlacement = autoPlacement;
+		this.wall = wall;
+		return this.LoadMesh();
 	}
 
-	public bool Init() {
+	public bool InitWithDict(Dictionary<string, object> dict) {
+		this.name = (string)dict["name"];
+		this.displayName = (string)dict["displayName"];
+		this.connection = objectToBlockConnectionArray(dict["connection"]);
+		this.connectionDir = objectToBlockDirectionArray(dict["connectionDir"]);
+		if (dict.ContainsKey("panelVertices")) {
+			this.panelVertices = objectToFloatArray(dict["panelVertices"]);
+		}
+
+		if (dict.ContainsKey("autoPlacement")) {
+			this.autoPlacement = (bool)dict["autoPlacement"];
+		}
+		if (dict.ContainsKey("wall")) {
+			this.wall = (int)(long)dict["wall"];
+		}
+		
+		return this.LoadMesh();
+	}
+
+	public bool LoadMesh() {
 		var obj = Resources.Load<GameObject>("Blocks/" + name);
 		if (obj == null) {
 			return false;
@@ -72,15 +97,17 @@ public class BlockShape
 		var meshes = new List<Mesh>();
 
 		// 固定メッシュを探す
-		string[] objNames = new string[]{"Zplus", "Zminus", "Xminus", "Xplus", "Yplus", "Yminus"};
+		string[] objNames = new string[]{"Zplus", "Zminus", "Xplus", "Xminus", "Yplus", "Yminus"};
 		for (int i = 0; i < objNames.Length; i++) {
+			Mesh mesh = null;
 			var child = obj.transform.Find(objNames[i]);
 			if (child) {
 				var meshFilter = child.GetComponent<MeshFilter>();
 				if (meshFilter) {
-					meshes.Add(meshFilter.sharedMesh);
+					mesh = meshFilter.sharedMesh;
 				}
 			}
+			meshes.Add(mesh);
 		}
 
 		// その他のメッシュを探す
@@ -103,7 +130,7 @@ public class BlockShape
 		return table[name];
 	}
 
-	public static BlockShape[] palette;
+	public static List<BlockShape> palette;
 	public static Dictionary<string, BlockShape> table;
 	
 	public static void LoadData() {
@@ -113,31 +140,18 @@ public class BlockShape
 		var jsonDict = MiniJSON.Json.Deserialize(jsonText) as Dictionary<string, object>;
 		var data = jsonDict["data"] as List<object>;
 
-		palette = new BlockShape[data.Count];
+		palette = new List<BlockShape>();
 		table = new Dictionary<string, BlockShape>();
 
 		for (int i = 0; i < data.Count; i++) {
-			var shape = data[i] as Dictionary<string, object>;
-			//try {
-				string name = (string)shape["name"];
-				string displayName = (string)shape["displayName"];
-				var connection = objectToBlockConnectionArray(shape["connection"]);
-				var connectionDir = objectToBlockDirectionArray(shape["connectionDir"]);
-				var panelVertices = objectToFloatArray(shape["panelVertices"]);
-				bool autoPlacement = false;
-				if (shape.ContainsKey("autoPlacement")) {
-					autoPlacement = (bool)shape["autoPlacement"];
-				}
+			var dict = data[i] as Dictionary<string, object>;
+			string name = (string)dict["name"];
 
-				palette[i] = new BlockShape(name, displayName, connection, connectionDir, panelVertices, autoPlacement);
-				if (palette[i].Init()) {
-					table.Add(name, palette[i]);
-				} else {
-					Debug.LogError("Loading error: " + (string)shape["name"]);
-				}
-			//} finally {
-			//	Debug.LogError("Format error: " + (string)shape["name"]);
-			//}
+			var shape = new BlockShape();
+			if (shape.InitWithDict(dict)) {
+				palette.Add(shape);
+				table.Add(name, shape);
+			}
 		}
 	}
 

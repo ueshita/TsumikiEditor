@@ -46,7 +46,7 @@ public class BlockGroup
 	public Block[] GetAllBlocks() {
 		var values = this.blocks.Values;
 		Block[] blocks = new Block[values.Count];
-		values.CopyTo(blocks,0);
+		values.CopyTo(blocks, 0);
 		return blocks;
 	}
 
@@ -91,24 +91,33 @@ public class BlockGroup
 	}
 
 	public Mesh GetWireMesh() {
-		int trianglesCount = this.surfaceMeshMerger.triangles.Count / 3;
+		int indexCount = this.surfaceMeshMerger.triangles.Count;
 		var tris = this.surfaceMeshMerger.triangles;
-		List<int> lines = new List<int>(trianglesCount * 6);
+		List<int> lines = new List<int>(indexCount);
 
-		for (int i = 0; i < trianglesCount; i++) {
-			int i0 = tris[i * 3 + 0];
-			int i1 = tris[i * 3 + 1];
-			int i2 = tris[i * 3 + 2];
-			if (tris.Count >= i * 3 + 6 && 
-				tris[i * 3 + 3] == i0 && tris[i * 3 + 4] == i2
-			) {
+		for (int i = 0; i < indexCount; i += 3) {
+			int i0 = tris[i + 0];
+			int i1 = tris[i + 1];
+			int i2 = tris[i + 2];
+			int i3 = -1;
+
+			if (tris.Count >= i + 6) {
+				if (tris[i + 3] == i0 && tris[i + 4] == i2) {
+					i3 = tris[i + 5];
+				} else if (tris[i + 3] == i2 && tris[i + 5] == i0 ) {
+					i3 = tris[i + 4];
+				} else if (tris[i + 4] == i0 && tris[i + 5] == i2 ) {
+					i3 = tris[i + 3];
+				}
+			}
+
+			if (i3 >= 0) {
 				// 四角形を作る
-				int i3 = tris[i * 3 + 5];
 				lines.Add(i0); lines.Add(i1);
 				lines.Add(i1); lines.Add(i2);
 				lines.Add(i2); lines.Add(i3);
 				lines.Add(i3); lines.Add(i0);
-				i += 1;
+				i += 3;
 			} else {
 				// 三角形を作る
 				lines.Add(i0); lines.Add(i1);
@@ -172,16 +181,16 @@ public class BlockMeshMerger
 		this.triangles.Clear();
 	}
 
-	public void Merge(Mesh mesh, Vector3 position, BlockDirection direction, int textureId) {
+	public void Merge(Mesh mesh, Vector3 position, BlockDirection direction, int textureId, int meshIndex) {
 		var chip = TexturePalette.Instance.GetChip(textureId);
-				
+		
 		int vertexOffset = this.vertexPos.Count;
 		Vector3[] vertexPos = mesh.vertices;
 		Vector2[] vertexUv = mesh.uv;
 		for (int j = 0; j < vertexPos.Length; j++) {
-			Vector3 localPosition = vertexPos[j];
+			Vector3 localPosition = Vector3.Scale(vertexPos[j], new Vector3(-1, 1, -1));
 			this.vertexPos.Add(position + EditUtil.RotatePosition(localPosition, direction));
-			this.vertexUv.Add(chip.ApplyUV(vertexUv[j], position.y));
+			this.vertexUv.Add(chip.ApplyUV(vertexUv[j], meshIndex, position.y));
 		}
 		int[] indices = mesh.GetIndices(0);
 		for (int j = 0; j < indices.Length; j++) {

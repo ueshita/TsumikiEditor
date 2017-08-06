@@ -1,6 +1,8 @@
 # TsumikiEditor
-3D Block Map Editor
+Block-based 3D Map Editor
 
 ----
 
 Under construction...
+
+![](tsumiki.png)

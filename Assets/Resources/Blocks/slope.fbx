@@ -8,20 +8,20 @@ FBXHeaderExtension:  {
     FBXVersion: 6100
     CreationTimeStamp:  {
         Version: 1000
-        Year: 2016
-        Month: 5
-        Day: 19
-        Hour: 3
-        Minute: 49
-        Second: 26
-        Millisecond: 53
+        Year: 2017
+        Month: 2
+        Day: 23
+        Hour: 22
+        Minute: 58
+        Second: 14
+        Millisecond: 667
     }
     Creator: "FBX SDK/FBX Plugins version 2009.3"
     OtherFlags:  {
         FlagPLE: 0
     }
 }
-CreationTime: "2016-05-19 03:49:26:053"
+CreationTime: "2017-02-23 22:58:14:667"
 Creator: "FBX SDK/FBX Plugins build 20080926"
 
 ; Document Description
@@ -857,39 +857,39 @@ Objects:  {
         MultiTake: 1
         Shading: Y
         Culling: "CullingOff"
-        Vertices: -50,25,-50,-50,-25,-50,-50,-25,50,-50,25,-50,-50,-25,-50,-50,-25,50
-        PolygonVertexIndex: 2,1,-1,3,4,-6
-        Edges: 0,1,2,3,4,5
+        Vertices: -50,25,-50,-50,-25,-50,-50,-25,50
+        PolygonVertexIndex: 0,1,-3
+        Edges: 0,1,2
         GeometryVersion: 124
         LayerElementNormal: 0 {
             Version: 101
             Name: "Face Vertex Normal"
             MappingInformationType: "ByPolygonVertex"
             ReferenceInformationType: "Direct"
-            Normals: 1,0,0,1,0,0,1,0,0,-1,0,0,-1,0,0,-1,0,0
+            Normals: -1,0,0,-1,0,0,-1,0,0
         }
         LayerElementColor: 0 {
             Version: 101
             Name: ""
             MappingInformationType: "ByPolygonVertex"
             ReferenceInformationType: "IndexToDirect"
-            Colors: 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
-            ColorIndex: 0,1,2,3,4,5
+            Colors: 1,1,1,1,1,1,1,1,1,1,1,1
+            ColorIndex: 0,1,2
         }
         LayerElementUV: 0 {
             Version: 101
             Name: "map1"
             MappingInformationType: "ByPolygonVertex"
             ReferenceInformationType: "IndexToDirect"
-            UV: 0,1,0,1,0,1,0,1,0,0,1,0
-            UVIndex: 0,1,2,3,4,5
+            UV: 0,1,0,0,1,0
+            UVIndex: 0,1,2
         }
         LayerElementSmoothing: 0 {
             Version: 102
             Name: "Edge Smoothing"
             MappingInformationType: "ByEdge"
             ReferenceInformationType: "Direct"
-            Smoothing: 0,0,0,0,0,0
+            Smoothing: 0,0,0
         }
         LayerElementMaterial: 0 {
             Version: 101
@@ -949,8 +949,8 @@ Objects:  {
             Comment: ""
         }
         Properties60:  {
-            Property: "DocumentUrl", "KString", "", "C:\home\work\svn\RimeBertaNoah\Graphics\3DBlock\slope.fbx"
-            Property: "SrcDocumentUrl", "KString", "", "C:\home\work\svn\RimeBertaNoah\Graphics\3DBlock\slope.fbx"
+            Property: "DocumentUrl", "KString", "", "C:\home\work\svn\RimeBertaNoah\3D\Blocks\slope.fbx"
+            Property: "SrcDocumentUrl", "KString", "", "C:\home\work\svn\RimeBertaNoah\3D\Blocks\slope.fbx"
             Property: "Original", "Compound", ""
             Property: "Original|ApplicationVendor", "KString", "", ""
             Property: "Original|ApplicationName", "KString", "", ""
@@ -1015,7 +1015,7 @@ Objects:  {
         }
         UseMipMap: 0
         Filename: "guide.png"
-        RelativeFilename: "..\..\..\..\..\..\home\guide.png"
+        RelativeFilename: "..\Blocks\guide.png"
     }
     Texture: "Texture::mat1_tex", "" {
         Type: "TextureVideoClip"
@@ -1040,7 +1040,7 @@ Objects:  {
         }
         Media: "Video::mat1_tex"
         FileName: "guide.png"
-        RelativeFilename: "..\..\..\..\..\..\home\guide.png"
+        RelativeFilename: "..\Blocks\guide.png"
         ModelUVTranslation: 0,0
         ModelUVScaling: 1,1
         Texture_Alpha_Source: "None"

@@ -39,9 +39,12 @@ public partial class EditManager : MonoBehaviour
 		this.cmdlist.Add(command);
 		this.cmdpos++;
 		command.Do();
+
+		EditManager.Instance.OnDataChanged();
 	}
 
-	public void AddBlock(int layer, Vector3 position, BlockDirection direction) {
+	public void AddBlock(Vector3 position, BlockDirection direction) {
+		EditLayer layer = this.CurrentLayer;
 		BlockShape shape = BlockShape.Find(this.toolBlock);
 		if (shape == null) {
 			return;
@@ -53,69 +56,61 @@ public partial class EditManager : MonoBehaviour
 		}
 		this.AddCommand(new Command(
 		() => {
-			this.Layers[layer].AddBlock(block);
+			layer.AddBlock(block);
 		}, () => {
-			this.Layers[layer].RemoveBlock(block);
+			layer.RemoveBlock(block);
 		}));
 	}
 
-	public void RemoveBlock(int layer, Vector3 position) {
-		Block block = this.Layers[layer].GetBlock(position);
+	public void RemoveBlock(Vector3 position) {
+		EditLayer layer = this.CurrentLayer;
+		Block block = layer.GetBlock(position);
 		if (block == null) {
 			return;
 		}
 		this.AddCommand(new Command(
 		() => {
-			this.Layers[layer].RemoveBlock(block);
+			layer.RemoveBlock(block);
 		}, () => {
-			this.Layers[layer].AddBlock(block);
-		}));
-	}
-	
-	public void AddBlocks(Block[] blocks) {
-		this.AddCommand(new Command(
-		() => {
-			this.CurrentLayer.AddBlocks(blocks);
-		}, () => {
-			this.CurrentLayer.RemoveBlocks(blocks);
-		}));
-	}
-
-	public void RemoveBlocks(Block[] blocks) {
-		this.AddCommand(new Command(
-		() => {
-			this.CurrentLayer.RemoveBlocks(blocks);
-		}, () => {
-			this.CurrentLayer.AddBlocks(blocks);
+			layer.AddBlock(block);
 		}));
 	}
 	
 	public void AddObjects(Block[] blocks, Model[] models) {
+		EditLayer layer = this.CurrentLayer;
+		Block[] removedBlocks = null;	// 上書きされたブロック
+		Model[] removedModels = null;	// 上書きされたモデル
 		this.AddCommand(new Command(
 		() => {
-			this.CurrentLayer.AddBlocks(blocks);
-			this.CurrentLayer.AddModels(models);
+			removedBlocks = layer.AddBlocks(blocks);
+			removedModels = layer.AddModels(models);
 		}, () => {
-			this.CurrentLayer.RemoveModels(models, true);
-			this.CurrentLayer.RemoveBlocks(blocks);
+			layer.RemoveModels(models, true);
+			layer.RemoveBlocks(blocks);
+			layer.AddBlocks(removedBlocks);
+			layer.AddModels(removedModels);
+			removedBlocks = null;
+			removedModels = null;
 		}));
 	}
 
 	public void RemoveObjects(Block[] blocks, Model[] models) {
+		EditLayer layer = this.CurrentLayer;
 		this.AddCommand(new Command(
 		() => {
-			this.CurrentLayer.RemoveBlocks(blocks);
-			this.CurrentLayer.RemoveModels(models, true);
+			layer.RemoveBlocks(blocks);
+			layer.RemoveModels(models, true);
 		}, () => {
-			this.CurrentLayer.AddModels(models);
-			this.CurrentLayer.AddBlocks(blocks);
+			layer.AddModels(models);
+			layer.AddBlocks(blocks);
 		}));
 	}
 
 	public void MoveObjects(Block[] blocks, Model[] models, Vector3 moveVector, 
 		Vector3 centerPosition, int rotation) {
-		List<Block> removedBlocks = new List<Block>();	// 上書きされたブロック
-		List<Model> removedModels = new List<Model>();	// 上書きされたブロック
+		EditLayer layer = this.CurrentLayer;
+		Block[] removedBlocks = null;	// 上書きされたブロック
+		Model[] removedModels = null;	// 上書きされたモデル
 
 		if (blocks.Length == 0 && models.Length == 0) {
 			return;
@@ -123,8 +118,8 @@ public partial class EditManager : MonoBehaviour
 		this.AddCommand(new Command(
 		() => {
 			// レイヤーから一旦削除
-			this.CurrentLayer.RemoveBlocks(blocks);
-			this.CurrentLayer.RemoveModels(models, false);
+			layer.RemoveBlocks(blocks);
+			layer.RemoveModels(models, false);
 			// ブロックを移動回転させる
 			foreach (var block in blocks) {
 				Vector3 offset = block.position - centerPosition;
@@ -139,34 +134,18 @@ public partial class EditManager : MonoBehaviour
 				model.SetPosition(centerPosition + offset + moveVector);
 				model.SetRotation(model.rotation + rotation * 90);
 			}
-			// 上書きしそうなブロックを退避させる
-			foreach (var block in blocks) {
-				Block removedBlock = this.CurrentLayer.GetBlock(block.position);
-				if (removedBlock != null) {
-					this.CurrentLayer.RemoveBlock(removedBlock);
-					removedBlocks.Add(removedBlock);
-				}
-			}
-			// 上書きしそうなモデルを退避させる
-			foreach (var model in models) {
-				Model removedModel = this.CurrentLayer.GetModel(model.position);
-				if (removedModel != null) {
-					this.CurrentLayer.RemoveModel(removedModel, true);
-					removedModels.Add(removedModel);
-				}
-			}
 			// レイヤーに戻す
-			this.CurrentLayer.AddBlocks(blocks);
-			this.CurrentLayer.AddModels(models);
+			removedBlocks = layer.AddBlocks(blocks);
+			removedModels = layer.AddModels(models);
 		}, () => {
 			// レイヤーから一旦削除
-			this.CurrentLayer.RemoveBlocks(blocks);
-			this.CurrentLayer.RemoveModels(models, false);
+			layer.RemoveBlocks(blocks);
+			layer.RemoveModels(models, false);
 			// 退避したブロックを復活させる
-			this.CurrentLayer.AddBlocks(removedBlocks.ToArray());
-			removedBlocks.Clear();
-			this.CurrentLayer.AddModels(removedModels.ToArray());
-			removedModels.Clear();
+			layer.AddBlocks(removedBlocks);
+			layer.AddModels(removedModels);
+			removedBlocks = null;
+			removedModels = null;
 			// ブロックを逆方向に移動回転させる
 			foreach (var block in blocks) {
 				Vector3 offset = block.position - centerPosition - moveVector;
@@ -182,48 +161,43 @@ public partial class EditManager : MonoBehaviour
 				model.SetRotation(model.rotation - rotation * 90);
 			}
 			// レイヤーに戻す
-			this.CurrentLayer.AddBlocks(blocks);
-			this.CurrentLayer.AddModels(models);
+			layer.AddBlocks(blocks);
+			layer.AddModels(models);
 		}));
 	}
 
-	public void PaintBlock(Block block, BlockDirection direction, int textureChip) {
-		int oldTextureChip = block.GetTextureChip(direction);
+	public void PaintBlock(Block block, BlockDirection direction, bool isObject, int textureChip) {
+		EditLayer layer = this.CurrentLayer;
+		int oldTextureChip = block.GetTextureChip(direction, isObject);
 		this.AddCommand(new Command(
 		() => {
-			block.SetTextureChip(direction, textureChip);
-			this.CurrentLayer.SetDirty();
+			block.SetTextureChip(direction, isObject, textureChip);
+			layer.SetDirty();
 		}, () => {
-			block.SetTextureChip(direction, oldTextureChip);
-			this.CurrentLayer.SetDirty();
+			block.SetTextureChip(direction, isObject, oldTextureChip);
+			layer.SetDirty();
 		}));
 	}
 	
-	public void AddModel(int layer, Vector3 position) {
+	public void AddModel(Vector3 position) {
+		EditLayer layer = this.CurrentLayer;
 		var modelShape = ModelShape.Find(this.toolModel);
 		var model = new Model(modelShape, position, 0);
 
 		this.AddCommand(new Command(
 		() => {
-			this.Layers[layer].AddModel(model);
+			layer.AddModel(model);
 		}, () => {
-			this.Layers[layer].RemoveModel(model, true);
+			layer.RemoveModel(model, true);
 		}));
 	}
-	public void RemoveModel(int layer, Model model) {
+	public void RemoveModel(Model model) {
+		EditLayer layer = this.CurrentLayer;
 		this.AddCommand(new Command(
 		() => {
-			this.Layers[layer].RemoveModel(model, true);
+			layer.RemoveModel(model, true);
 		}, () => {
-			this.Layers[layer].AddModel(model);
-		}));
-	}
-	public void RemoveModels(Model[] models) {
-		this.AddCommand(new Command(
-		() => {
-			this.CurrentLayer.RemoveModels(models, true);
-		}, () => {
-			this.CurrentLayer.AddModels(models);
+			layer.AddModel(model);
 		}));
 	}
 

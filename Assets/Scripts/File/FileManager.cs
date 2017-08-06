@@ -14,7 +14,11 @@ public static class FileManager
         const string filter = "Tsumiki Design file (*.tkd)\0*.tkd\0All files (*.*)\0*.*\0\0";
 		
 		if (isSave) {
-			return Dialogs.ShowFileDialog("Save project file", filter, lastDirPath, true);
+			string path = Dialogs.ShowFileDialog("Save project file", filter, lastDirPath, true);
+			if (Path.GetExtension(path) == "" && !File.Exists(path)) {
+				Path.ChangeExtension(path, ".tkd");
+			}
+			return path;
 		} else {
 			return Dialogs.ShowFileDialog("Open project file", filter, lastDirPath, false);
 		}
@@ -38,42 +42,60 @@ public static class FileManager
 		return Dialogs.ShowFileDialog("Export data", filter, lastDirPath, true);
 	}
 
-	public static void Load() {
+	public static void Reset() {
+		currentFilePath = null;
+	}
+
+	public static bool Load() {
 		string path = OpenDialog(false);
 		if (!String.IsNullOrEmpty(path)) {
-			Load(path);
+			return Load(path);
 		}
+		return false;
 	}
 
-	public static void Save() {
+	public static bool Save() {
 		string path = FileManager.currentFilePath;
 		if (!String.IsNullOrEmpty(path)) {
-			Save(path);
+			return Save(path);
 		} else {
-			SaveAs();
+			return SaveAs();
 		}
 	}
 
-	public static void SaveAs() {
+	public static bool SaveAs() {
 		string path = OpenDialog(true);
 		if (!String.IsNullOrEmpty(path)) {
-			Save(path);
+			return Save(path);
 		}
+		return false;
 	}
 
-	public static void Load(string filePath) {
+	public static bool Load(string filePath) {
 		var xml = new XmlDocument();
 		xml.Load(filePath);
-		EditManager.Instance.Clear();
+		EditManager.Instance.Reset();
 		
 		var rootList = xml.GetElementsByTagName("tsumiki");
 		
 		var root = rootList[0] as XmlElement;
+		string versionString = root.GetAttribute("version");
+		int version = (int)(decimal.Parse(versionString) * 100);
+		
 		var layerList = root.GetElementsByTagName("layer");
 		for (int i = 0; i < layerList.Count; i++) {
 			var layerNode = layerList[i] as XmlElement;
-			var layer = EditManager.Instance.AddLayer(layerNode.Name);
+			var layerName = layerNode.GetAttribute("name");
+			var layer = EditManager.Instance.FindLayer(layerName);
 			layer.Deserialize(layerNode);
+		}
+
+		if (version <= 100) {
+			foreach (var layer in EditManager.Instance.Layers) {
+				foreach (var block in layer.GetAllBlocks()) {
+					block.SetDirection((BlockDirection)((int)block.direction ^ 1));
+				}
+			}
 		}
 
 		// パス情報の保存
@@ -84,9 +106,12 @@ public static class FileManager
 			EditManager.Instance.RoutePath.Deserialize(routepathNode);
 		}
 		currentFilePath = filePath;
+		
+		EditManager.Instance.OnDataSaved();
+		return true;
 	}
 	
-	public static void Save(string filePath) {
+	public static bool Save(string filePath) {
 		var writer = new XmlTextWriter(filePath, Encoding.UTF8);
 		writer.Formatting = Formatting.Indented;
 
@@ -95,7 +120,7 @@ public static class FileManager
 		var root = xml.CreateElement("tsumiki");
 		xml.AppendChild(root);
 
-		root.SetAttribute("version", "1.00");
+		root.SetAttribute("version", "1.01");
 		
 		// ブロック情報の保存
 		foreach (var layer in EditManager.Instance.Layers) {
@@ -116,5 +141,10 @@ public static class FileManager
 
 		writer.Flush();
 		writer.Close();
+		
+		currentFilePath = filePath;
+		
+		EditManager.Instance.OnDataSaved();
+		return true;
 	}
 }

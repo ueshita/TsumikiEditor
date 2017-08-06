@@ -8,7 +8,13 @@ using System.Collections.Generic;
 public class FileMenu : MonoBehaviour
 {
 	public void NewButton_OnClick() {
-		EditManager.Instance.Reset();
+		if (EditManager.Instance.hasUnsavedData) {
+			EditManager.Instance.QuitDialog.Open((result) => {
+				if (result) EditManager.Instance.Reset();
+			});
+		} else {
+			EditManager.Instance.Reset();
+		}
 	}
 	public void LoadButton_OnClick() {
 		FileManager.Load();
@@ -28,9 +34,7 @@ public class FileMenu : MonoBehaviour
 	public void ExportE3DButton_OnClick() {
 		string path = FileManager.OpenExportDialog(FileManager.ExportFormat.E3D);
 		if (!String.IsNullOrEmpty(path)) {
-			E3DExporter.Export(path, 
-				EditManager.Instance.CurrentLayer.GetBlockGroup(),
-				EditManager.Instance.CurrentLayer.GetModelGroup());
+			E3DExporter.Export(path);
 		}
 	}
 }

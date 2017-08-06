@@ -7,19 +7,11 @@
 		"panelVertices": [1.0, 1.0, 1.0, 1.0]
 	},
 	{
-		"name": "cube-bevel", 
-		"displayName":"面取りブロック",
-		"autoPlacement": true,
-		"connection":    [1, 1, 1, 1, 1, 1], 
-		"connectionDir": [0, 0, 0, 0, 0, 0], 
-		"panelVertices": [1.0, 1.0, 1.0, 1.0]
-	},
-	{
 		"name": "diag-slope-large",
 		"displayName": "対角斜面(大)",
 		"connection":    [3, 1, 3, 0, 0, 1], 
-		"connectionDir": [2, 0, 1, 0, 0, 0],
-		"panelVertices": [0.0, 1.0, 1.0, 1.0]
+		"connectionDir": [2, 0, 0, 0, 0, 0],
+		"panelVertices": [1.0, 0.0, 1.0, 1.0]
 	},
 	{
 		"name": "slope",
@@ -29,24 +21,31 @@
 		"panelVertices": [0.0, 0.0, 1.0, 1.0]
 	},
 	{
+		"name": "slope-rev",
+		"displayName": "斜面(天井)",
+		"connection":    [0, 1, 18, 18, 0, 1], 
+		"connectionDir": [0, 0, 0, 0, 0, 0], 
+		"panelVertices": [1.0, 1.0, 1.0, 1.0]
+	},
+	{
 		"name": "diag-slope-small",
 		"displayName": "対角斜面(小)",
 		"connectionType": 2, 
 		"connection":    [0, 3, 3, 0, 0, 1], 
 		"connectionDir": [0, 3, 0, 0, 0, 0], 
-		"panelVertices": [0.0, 0.0, 1.0, 0.0]
+		"panelVertices": [0.0, 0.0, 0.0, 1.0]
 	},
 	{
 		"name": "steep-slope-top",
 		"displayName": "急斜面(上)",
-		"connection":    [0, 1, 3, 3, 0, 1], 
+		"connection":    [0, 1, 4, 4, 0, 0], 
 		"connectionDir": [0, 0, 0, 0, 0, 0], 
 		"panelVertices": [0.0, 0.0, 0.0, 0.0]
 	},
 	{
 		"name": "steep-slope-btm",
 		"displayName": "急斜面(下)",
-		"connection":    [0, 1, 3, 3, 0, 1], 
+		"connection":    [0, 1, 5, 5, 0, 1], 
 		"connectionDir": [0, 0, 0, 0, 0, 0], 
 		"panelVertices": [1.0, 1.0, 1.0, 1.0]
 	},
@@ -79,21 +78,21 @@
 		"panelVertices": [1.0, 1.0, 1.0, 1.0]
 	},
 	{
-		"name": "Fence-1",
+		"name": "fence-1",
 		"displayName": "柵",
 		"connection":    [0, 0, 7, 7, 0, 0], 
 		"connectionDir": [0, 0, 0, 0, 0, 0], 
 		"panelVertices": [0.0, 0.0, 0.0, 0.0]
 	},
 	{
-		"name": "Fence-2",
+		"name": "fence-2",
 		"displayName": "柵(曲がり1)",
 		"connection":    [0, 7, 7, 0, 0, 0], 
 		"connectionDir": [0, 0, 0, 0, 0, 0], 
 		"panelVertices": [0.0, 0.0, 0.0, 0.0]
 	},
 	{
-		"name": "Fence-3",
+		"name": "fence-3",
 		"displayName": "柵(曲がり2)",
 		"connection":    [7, 0, 7, 0, 0, 0], 
 		"connectionDir": [0, 0, 0, 0, 0, 0], 
@@ -116,15 +115,15 @@
 	{
 		"name": "triangular-1",
 		"displayName": "斜め1",
-		"connection":    [0, 1, 0, 1, 14, 14], 
-		"connectionDir": [0, 0, 0, 0, 0, 0], 
+		"connection":    [10, 1, 10, 1, 14, 14], 
+		"connectionDir": [2, 0, 0, 0, 0, 0], 
 		"panelVertices": [1.0, 1.0, 1.0, 1.0]
 	},
 	{
 		"name": "triangular-2",
 		"displayName": "斜め2",
 		"connection":    [0, 10, 0, 10, 15, 15], 
-		"connectionDir": [0, 0, 0, 0, 0, 0], 
+		"connectionDir": [0, 2, 0, 0, 0, 0], 
 		"panelVertices": [0.0, 0.0, 0.0, 0.0]
 	},
 	{
@@ -154,5 +153,47 @@
 		"connection":    [0, 17, 0, 0, 0, 17], 
 		"connectionDir": [0, 0, 0, 0, 0, 0], 
 		"panelVertices": [0.8, 0.8, 0.8, 0.8]
+	},
+	{
+		"name": "wall-1",
+		"displayName": "壁1",
+		"connection":    [0, 0, 0, 0, 0, 0], 
+		"connectionDir": [0, 0, 0, 0, 0, 0], 
+		"wall": 1,
+	},
+	{
+		"name": "wall-2",
+		"displayName": "壁2",
+		"connection":    [0, 0, 0, 0, 0, 0], 
+		"connectionDir": [0, 0, 0, 0, 0, 0], 
+		"wall": 2,
+	},
+	{
+		"name": "wall-3",
+		"displayName": "壁3(斜面)",
+		"connection":    [0, 0, 0, 0, 0, 0], 
+		"connectionDir": [0, 0, 0, 0, 0, 0], 
+		"wall": 1,
+	},
+	{
+		"name": "wall-4",
+		"displayName": "壁4(斜面)",
+		"connection":    [0, 0, 0, 0, 0, 0], 
+		"connectionDir": [0, 0, 0, 0, 0, 0], 
+		"wall": 1,
+	},
+	{
+		"name": "wall-5",
+		"displayName": "壁5(斜め)",
+		"connection":    [0, 0, 0, 0, 0, 0], 
+		"connectionDir": [0, 0, 0, 0, 0, 0], 
+		"isWall": 2,
+	},
+	{
+		"name": "wall-6",
+		"displayName": "壁6(斜め)",
+		"connection":    [0, 0, 0, 0, 0, 0], 
+		"connectionDir": [0, 0, 0, 0, 0, 0], 
+		"isWall": 2,
 	},
 ]}

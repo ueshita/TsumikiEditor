@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
 using System;
+using System.IO;
 
 public partial class EditManager : MonoBehaviour
 {
@@ -20,7 +21,7 @@ public partial class EditManager : MonoBehaviour
 
 	public List<EditLayer> Layers {get; private set;}
 	public EditLayer CurrentLayer {get {return this.Layers[this.currentLayerIndex];}}
-	int currentLayerIndex = 0;
+	private int currentLayerIndex = 0;
 	
 	public Selector Selector {get; private set;}
 	public Grid Grid {get; private set;}
@@ -29,6 +30,8 @@ public partial class EditManager : MonoBehaviour
 	public ToolMenu ToolMenu {get; private set;}
 	public ModelProperties ModelProperties {get; private set;}
 	public MetaInfo MetaInfo {get; private set;}
+	public QuitDialog QuitDialog {get; private set;}
+	public LayerListView LayerListView {get; private set;}
 
 	private CoordinateSystem coordinateSystem = CoordinateSystem.RightHanded;
 	private Tool tool = Tool.Block;
@@ -37,6 +40,7 @@ public partial class EditManager : MonoBehaviour
 	private int toolChip = 0;
 	private List<Command> cmdlist = new List<Command>();
 	private int cmdpos = 0;
+	public bool hasUnsavedData {get; private set;}
 
 	private GameObject blockPaletteListView;
 	private GameObject texturePaletteListView;
@@ -70,6 +74,11 @@ public partial class EditManager : MonoBehaviour
 		this.ToolMenu = GameObject.FindObjectOfType<ToolMenu>();
 		this.ModelProperties = GameObject.FindObjectOfType<ModelProperties>();
 		this.MetaInfo = GameObject.FindObjectOfType<MetaInfo>();
+		
+		this.QuitDialog = GameObject.FindObjectOfType<QuitDialog>();
+		this.QuitDialog.Close();
+
+		this.LayerListView = GameObject.FindObjectOfType<LayerListView>();
 
 		BlockShape.LoadData();
 		ModelShape.LoadData();
@@ -80,16 +89,48 @@ public partial class EditManager : MonoBehaviour
 			return;
 		}
 
-		var result = Dialogs.ShowMessage("終了する前に変更を保存しますか？", "Tsumiki Editor",
-			Dialogs.MessageType.YesNoCancel, Dialogs.MessageIcon.Exclamation);
-		if (result == Dialogs.MessageResult.Cancel) {
+		if (this.hasUnsavedData) {
+			if (!this.QuitDialog.IsOpened()) {
+				this.QuitDialog.Open((result) => {
+					if (result) {
+						this.hasUnsavedData = false;
+						Application.Quit();
+					}
+				});
+			}
 			Application.CancelQuit();
-			return;
 		}
+	}
+	
+	public void OnDataSaved() {
+		this.hasUnsavedData = false;
+		EditManager.Instance.UpdateWindowTitle();
+	}
 
-		if (result == Dialogs.MessageResult.Yes) {
-			FileManager.Save();
+	public void OnDataDiscarded() {
+		this.hasUnsavedData = false;
+		EditManager.Instance.UpdateWindowTitle();
+	}
+
+	public void OnDataChanged() {
+		bool isChanged = !this.hasUnsavedData;
+		this.hasUnsavedData = true;
+		if (isChanged) EditManager.Instance.UpdateWindowTitle();
+	}
+
+	public void UpdateWindowTitle() {
+		string filePath = FileManager.currentFilePath;
+		string fileName;
+		if (String.IsNullOrEmpty(filePath)) {
+			fileName = "NewMap";
+		} else {
+			fileName = Path.GetFileName(filePath);
+			if (this.hasUnsavedData) {
+				fileName += " *";
+			}
 		}
+		
+		WindowControl.SetWindowTitle(fileName + " - " + Application.productName);
 	}
 
 	void Start() {
@@ -157,6 +198,7 @@ public partial class EditManager : MonoBehaviour
 			this.RoutePath.SetEnabled(false);
 		}
 	}
+
 	public Tool GetTool() {
 		return this.tool;
 	}
@@ -183,16 +225,33 @@ public partial class EditManager : MonoBehaviour
 		this.toolChip = chipIndex;
 	}
 
-	public EditLayer AddLayer(string name) {
+	public void SetCurrentLayerIndex(int layerIndex) {
+		this.currentLayerIndex = layerIndex;
+		this.Selector.SetCurrentLayer(this.CurrentLayer);
+	}
+
+	public EditLayer FindLayer(string layerName) {
+		foreach (var layer in this.Layers) {
+			if (layer.gameObject.name == layerName) {
+				return layer;
+			}
+		}
+		return this.Layers[0];
+	}
+
+	public EditLayer AddLayer(string name, string materialName, string textureName) {
 		var obj = new GameObject(name);
 		var layer = obj.AddComponent<EditLayer>();
+		layer.SetMaterial(materialName, textureName);
 		this.Layers.Add(layer);
+		this.LayerListView.UpdateView();
 		return layer;
 	}
 
 	public void RemoveLayer(EditLayer layer) {
 		this.Layers.Remove(layer);
 		GameObject.Destroy(layer.gameObject);
+		this.LayerListView.UpdateView();
 	}
 
 	public void Clear() {
@@ -208,7 +267,10 @@ public partial class EditManager : MonoBehaviour
 
 	public void Reset() {
 		this.Clear();
-		this.AddLayer("Layer01");
+		FileManager.Reset();
+		this.AddLayer("Layer-Blocks", "BlockMaterial", "rbn01");
+		this.AddLayer("Layer-Water", "WaterMaterial", null);
+		this.OnDataDiscarded();
 	}
 	
 	public bool IsLeftHanded() {

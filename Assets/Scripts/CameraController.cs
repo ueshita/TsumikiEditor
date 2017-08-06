@@ -48,14 +48,13 @@ public class CameraController : MonoBehaviour
 			// 平行移動中
 			Vector3 move = Input.mousePosition - this.moveMousePos;
 			Vector3 dif = this.targetPosition - this.transform.position;
-			Vector3 front = dif.normalized;
 			float distance = dif.magnitude;
 			
-			Vector3 right  = Vector3.Cross(front, Vector3.up).normalized;
-			Vector3 upward = Vector3.Cross(front, right).normalized;
-
+			Vector3 right = Camera.main.transform.right;
+			Vector3 up    = Camera.main.transform.up;
+			
 			this.targetPosition = this.lockedPosition + 
-				(right * move.x + upward * move.y) * distance * 0.001f;
+				(right * -move.x + up * -move.y) * distance * 0.001f;
 		}
 	}
 
