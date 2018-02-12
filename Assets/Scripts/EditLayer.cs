@@ -11,6 +11,9 @@ public class EditLayer : MonoBehaviour
 	private BlockGroup blockGroup = new BlockGroup();
 	private ModelGroup modelGroup = new ModelGroup();
 	bool dirtyMesh = false;
+
+	public int NumVertices {get; private set;}
+	public int NumTriangles {get; private set;}
 	
 	void Awake() {
 		this.gameObject.AddComponent<MeshFilter>();
@@ -138,10 +141,18 @@ public class EditLayer : MonoBehaviour
 	protected void UpdateMesh() {
 		this.blockGroup.UpdateMesh();
 
-		this.GetComponent<MeshFilter>().sharedMesh = this.blockGroup.GetSurfaceMesh();
-		this.GetComponent<MeshCollider>().sharedMesh = this.blockGroup.GetGuideMesh();
+		var oldMesh = this.GetComponent<MeshFilter>().sharedMesh;
+		if (oldMesh) {
+			DestroyImmediate(oldMesh, true);
+		}
 
+		var newMesh = this.blockGroup.GetSurfaceMesh();
+		this.GetComponent<MeshFilter>().sharedMesh = newMesh;
+		this.GetComponent<MeshCollider>().sharedMesh = newMesh;
 		this.dirtyMesh = false;
+
+		this.NumVertices = newMesh.vertices.Length;
+		this.NumTriangles = newMesh.triangles.Length / 3;
 	}
 
 	public void Serialize(XmlElement node) {

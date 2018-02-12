@@ -40,6 +40,7 @@ public partial class EditManager : MonoBehaviour
 	private int toolChip = 0;
 	private List<Command> cmdlist = new List<Command>();
 	private int cmdpos = 0;
+	private int groupIndex = -1;
 	public bool hasUnsavedData {get; private set;}
 
 	private GameObject blockPaletteListView;
@@ -151,7 +152,7 @@ public partial class EditManager : MonoBehaviour
 		this.blockPaletteListView.SetActive(false);
 		this.texturePaletteListView.SetActive(false);
 		this.modelPaletteListView.SetActive(false);
-
+		
 		// カーソルにツールをセットする
 		switch (this.tool) {
 		case Tool.Block:
@@ -197,6 +198,8 @@ public partial class EditManager : MonoBehaviour
 		} else {
 			this.RoutePath.SetEnabled(false);
 		}
+
+		this.UpdateCollider();
 	}
 
 	public Tool GetTool() {
@@ -228,6 +231,7 @@ public partial class EditManager : MonoBehaviour
 	public void SetCurrentLayerIndex(int layerIndex) {
 		this.currentLayerIndex = layerIndex;
 		this.Selector.SetCurrentLayer(this.CurrentLayer);
+		this.UpdateCollider();
 	}
 
 	public EditLayer FindLayer(string layerName) {
@@ -285,6 +289,20 @@ public partial class EditManager : MonoBehaviour
 			return position;
 		} else {
 			return position;
+		}
+	}
+
+	private void UpdateCollider() {
+		if (this.tool == Tool.Brush || this.tool == Tool.Spuit) {
+			// 現在のレイヤーしか選択できないようにする
+			foreach (var layer in this.Layers) {
+				layer.GetComponent<MeshCollider>().enabled = false;
+			}
+			this.CurrentLayer.GetComponent<MeshCollider>().enabled = true;
+		} else {
+			foreach (var layer in this.Layers) {
+				layer.GetComponent<MeshCollider>().enabled = true;
+			}
 		}
 	}
 }

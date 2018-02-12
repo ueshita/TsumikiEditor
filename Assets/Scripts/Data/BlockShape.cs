@@ -29,6 +29,8 @@ public enum BlockConnection {
 
 	Pipe2				= 17,	// パイプ(2本)
 	ReverseSlope		= 18,	// 天井斜面
+
+	Wall				= 20,
 	
 }
 public class BlockShape
@@ -54,10 +56,11 @@ public class BlockShape
 
 	public bool autoPlacement {get; private set;}	// 自動配置
 	public int wall {get; private set;}				// 壁タイプ
+	public bool divideChipVert {get; private set; }
 	
 	public bool Init(string name, string displayName, 
 		BlockConnection[] connection, BlockDirection[] connectionDir, 
-		float[] panelVertices, bool autoPlacement, int wall
+		float[] panelVertices, bool autoPlacement, int wall, bool divideChipVert
 	) {
 		this.name = name;
 		this.displayName = displayName;
@@ -66,6 +69,7 @@ public class BlockShape
 		this.panelVertices = panelVertices;
 		this.autoPlacement = autoPlacement;
 		this.wall = wall;
+		this.divideChipVert = divideChipVert;
 		return this.LoadMesh();
 	}
 
@@ -83,6 +87,11 @@ public class BlockShape
 		}
 		if (dict.ContainsKey("wall")) {
 			this.wall = (int)(long)dict["wall"];
+		}
+		if (dict.ContainsKey("divideChipVert")) {
+			this.divideChipVert = (bool)dict["divideChipVert"];
+		} else {
+			this.divideChipVert = true;
 		}
 		
 		return this.LoadMesh();
@@ -127,7 +136,11 @@ public class BlockShape
 	}
 
 	public static BlockShape Find(string name) {
-		return table[name];
+		if (table.ContainsKey(name)) {
+			return table[name];
+		}
+		Debug.LogWarning("Block \'" + name + "\' is not found.");
+		return null;
 	}
 
 	public static List<BlockShape> palette;

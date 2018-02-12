@@ -3,7 +3,7 @@ using System.Collections;
 using System.Runtime.InteropServices;
 using System;
 
-public class Dialogs
+public static class Dialogs
 {
 	[StructLayout(LayoutKind.Sequential, CharSet=CharSet.Auto)]  
 	public class OpenFileName 
@@ -33,14 +33,6 @@ public class Dialogs
 		public int      flagsEx = 0;
 	}
 
-	[DllImport("user32.dll")]
-	public static extern IntPtr GetActiveWindow();
-
-	[DllImport("Comdlg32.dll", SetLastError = true, ThrowOnUnmappableChar = true, CharSet = CharSet.Auto)]
-	public static extern bool GetOpenFileName([In, Out] OpenFileName ofn);   
-	[DllImport("Comdlg32.dll", SetLastError = true, ThrowOnUnmappableChar = true, CharSet = CharSet.Auto)]
-	public static extern bool GetSaveFileName([In, Out] OpenFileName ofn);   
-
 	public static string ShowFileDialog(string title, string filter, string initialDir, bool isSave) {
 		OpenFileName ofn = new OpenFileName();
 		ofn.dlgOwner = GetActiveWindow();
@@ -65,9 +57,6 @@ public class Dialogs
 		}
 		return null;
 	}
-	
-	[DllImport("user32.dll", SetLastError = true, ThrowOnUnmappableChar = true, CharSet = CharSet.Auto)]
-	public static extern int MessageBox(IntPtr hWnd, string lpText, string lpCaption, uint uType);
 	
 	public enum MessageType {
 		Ok = 0,
@@ -98,4 +87,15 @@ public class Dialogs
 		return (MessageResult)MessageBox(GetActiveWindow(), title, caption, 
 			(uint)type | (uint)icon);
 	}
+
+	
+	[DllImport("Comdlg32.dll", SetLastError = true, ThrowOnUnmappableChar = true, CharSet = CharSet.Auto)]
+	public static extern bool GetOpenFileName([In, Out] OpenFileName ofn);   
+	[DllImport("Comdlg32.dll", SetLastError = true, ThrowOnUnmappableChar = true, CharSet = CharSet.Auto)]
+	public static extern bool GetSaveFileName([In, Out] OpenFileName ofn);   
+	
+	[DllImport("user32.dll")]
+	public static extern IntPtr GetActiveWindow();
+	[DllImport("user32.dll", SetLastError = true, ThrowOnUnmappableChar = true, CharSet = CharSet.Auto)]
+	public static extern int MessageBox(IntPtr hWnd, string lpText, string lpCaption, uint uType);
 }

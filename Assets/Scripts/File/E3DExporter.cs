@@ -10,6 +10,18 @@ using System.Runtime.InteropServices;
 
 public static class FileUtil
 {
+	public static void Write(this BinaryWriter writer, Vector2 vector) {
+		writer.Write(vector.x);
+		writer.Write(vector.y);
+	}
+	public static void Write(this BinaryWriter writer, Vector2i vector) {
+		writer.Write(vector.x);
+		writer.Write(vector.y);
+	}
+	public static void Write(this BinaryWriter writer, Vector2h vector) {
+		writer.Write(vector.x.value);
+		writer.Write(vector.y.value);
+	}
 	public static void Write(this BinaryWriter writer, Vector3 vector) {
 		writer.Write(vector.x);
 		writer.Write(vector.y);
@@ -20,6 +32,12 @@ public static class FileUtil
 		writer.Write(vector.y);
 		writer.Write(vector.z);
 	}
+	public static void Write(this BinaryWriter writer, Vector3h vector) {
+		writer.Write(vector.x.value);
+		writer.Write(vector.y.value);
+		writer.Write(vector.z.value);
+		writer.Write((ushort)0);	// padding
+	}
 	public static void Write(this BinaryWriter writer, Color color) {
 		writer.Write(color.r);
 		writer.Write(color.g);
@@ -27,6 +45,10 @@ public static class FileUtil
 		writer.Write(color.a);
 	}
 	public static Vector3i ApplyRightHanded(Vector3i vector) {
+		vector.z = -vector.z;
+		return vector;
+	}
+	public static Vector3h ApplyRightHanded(Vector3h vector) {
 		vector.z = -vector.z;
 		return vector;
 	}
@@ -42,8 +64,10 @@ public static class E3DExporter
 	struct StaticMeshVertex
 	{
 		public Vector3 position;
-		public Vector3 normal;
-		public Vector2 texCoord;
+		//public Vector3 normal;
+		//public Vector2 texCoord;
+		public Vector3h normal;
+		public Vector2h texCoord;
 
 		public static int GetSize() {
 			return Marshal.SizeOf(typeof(StaticMeshVertex));
@@ -52,14 +76,9 @@ public static class E3DExporter
 			return 3;
 		}
 		public void Write(BinaryWriter writer) {
-			writer.Write(this.position.x);
-			writer.Write(this.position.y);
-			writer.Write(this.position.z);
-			writer.Write(this.normal.x);
-			writer.Write(this.normal.y);
-			writer.Write(this.normal.z);
-			writer.Write(this.texCoord.x);
-			writer.Write(this.texCoord.y);
+			writer.Write(this.position);
+			writer.Write(this.normal);
+			writer.Write(this.texCoord);
 		}
 	}
 	
@@ -268,7 +287,6 @@ public static class E3DExporter
 				center = mesh.bounds.center + offset;
 				size = mesh.bounds.size;
 			}
-
 			
 			int[] indices = mesh.GetIndices(0);
 			for (int i = 0; i < indices.Length; i++) {
@@ -328,9 +346,11 @@ public static class E3DExporter
 		
 		// AttribInfo
 		var attribs = new ShaderAttrib[]{
-			new ShaderAttrib(10, 3,  0, 0),	// "a_Position",    
-			new ShaderAttrib(10, 3, 12, 0),	// "a_Normal",      
-			new ShaderAttrib(10, 2, 24, 0)	// "a_TexCoord",    
+			new ShaderAttrib(10, 3,  0, 0),	// "a_Position",
+			//new ShaderAttrib(10, 3, 12, 0),	// "a_Normal",
+			//new ShaderAttrib(10, 2, 24, 0)	// "a_TexCoord",
+			new ShaderAttrib(9, 3, 12, 0),	// "a_Normal", (16bit)
+			new ShaderAttrib(9, 2, 20, 0)	// "a_TexCoord",　(16bit)
 		};
 		for (int i = 0; i < attribs.Length; i++) {
 			attribs[i].Write(writer);

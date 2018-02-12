@@ -24,11 +24,9 @@ public class TexturePalette : MonoBehaviour, IPointerClickHandler
 			this.uv1 = uv1;
 			this.uv2 = uv2;
 		}
-		public Vector2 ApplyUV(Vector2 uv, int meshIndex, float height) {
+		public Vector2 ApplyUV(Vector2 uv, bool divideChipVert, float height) {
 			uv.y = 1.0f - uv.y;
-			if (meshIndex >= (int)BlockDirection.Zplus && 
-				meshIndex <= (int)BlockDirection.Xminus
-			) {
+			if (divideChipVert) {
 				float uarea = uv2.x - uv1.x;
 				float varea = uv2.y - uv1.y;
 				if (height - Mathf.Floor(height) >= 0.5f) {
@@ -60,6 +58,16 @@ public class TexturePalette : MonoBehaviour, IPointerClickHandler
 		return new Chip(uv1, uv2);
 	}
 
+	public void SetTexture(string textureName) {
+		var texture = Resources.Load("Textures/" + textureName) as Texture2D;
+		this.image.material.mainTexture = texture;
+		this.texSize = new Vector2(texture.width, texture.height);
+	}
+
+	public Texture GetTexture() {
+		return this.image.material.mainTexture;
+	}
+
 	void Awake() {
 		if (Instance != null) {
 			Debug.LogError("Illegal singleton in TexturePalette");
@@ -67,9 +75,9 @@ public class TexturePalette : MonoBehaviour, IPointerClickHandler
 		Instance = this;
 
 		this.image = this.GetComponent<Image>();
-		var cursorObj = this.image.rectTransform.FindChild("Cursor");
+		var cursorObj = this.image.rectTransform.Find("Cursor");
 		this.cursorImage = cursorObj.GetComponent<Image>();
-		this.texSize = new Vector2(image.material.mainTexture.width, image.material.mainTexture.height);
+		this.SetTexture("rbn01");
 	}
 
 	void Start() {

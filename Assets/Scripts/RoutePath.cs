@@ -42,7 +42,7 @@ public class RoutePath : MonoBehaviour
 		BlockGroup blockGroup = EditManager.Instance.CurrentLayer.GetBlockGroup();
 		Mesh panelMesh = blockGroup.GetRouteMesh();
 		Mesh lineMesh = this.GetRouteLineMesh();
-		this.guide.SetMesh(panelMesh, lineMesh);
+		this.guide.SetMesh(panelMesh, lineMesh, true);
 	}
 	
 	// パスラインのポリゴンを作る

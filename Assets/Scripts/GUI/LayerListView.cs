@@ -10,8 +10,8 @@ public class LayerListView : MonoBehaviour
 	public int value {get; private set;}
 
 	public void UpdateView() {
-		var viewport = this.transform.FindChild("Viewport");
-		var content = viewport.transform.FindChild("Content") as RectTransform;
+		var viewport = this.transform.Find("Viewport");
+		var content = viewport.transform.Find("Content") as RectTransform;
 		
 		const float buttonHeight = 30.0f;
 		content.sizeDelta = new Vector2(content.sizeDelta.x, 1 * buttonHeight);
@@ -32,10 +32,10 @@ public class LayerListView : MonoBehaviour
 			// アイテムルート
 			var imageView = node.GetComponent<Image>();
 			// ハイライト
-			var highlightView = node.FindChild("Highlight").GetComponent<Image>();
+			var highlightView = node.Find("Highlight").GetComponent<Image>();
 			highlightView.enabled = false;
 			// テキスト
-			var textView = node.FindChild("Text").GetComponent<Text>();
+			var textView = node.Find("Text").GetComponent<Text>();
 			textView.text = layer.gameObject.name;
 			// ボタン
 			var button = node.GetComponent<Button>();
@@ -51,11 +51,11 @@ public class LayerListView : MonoBehaviour
 	void OnChoosedItem(int index) {
 		// ハイライトを切り替える
 		if (this.value >= 0 && this.value < this.listItems.Count) {
-			this.listItems[this.value].transform.FindChild("Highlight").GetComponent<Image>().enabled = false;
+			this.listItems[this.value].transform.Find("Highlight").GetComponent<Image>().enabled = false;
 		}
 		this.value = index;
 		if (this.value >= 0 && this.value < this.listItems.Count) {
-			this.listItems[this.value].transform.FindChild("Highlight").GetComponent<Image>().enabled = true;
+			this.listItems[this.value].transform.Find("Highlight").GetComponent<Image>().enabled = true;
 		}
 
 		// セット

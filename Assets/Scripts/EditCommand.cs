@@ -43,6 +43,41 @@ public partial class EditManager : MonoBehaviour
 		EditManager.Instance.OnDataChanged();
 	}
 
+	// コマンドをグループ化(開始)
+	public void BeginCommandGroup() {
+		if (this.groupIndex >= 0) {
+			Debug.LogError("Command Grouping Failed.");
+			return;
+		}
+		this.groupIndex = this.cmdpos;
+	}
+	
+	// コマンドをグループ化(終了)
+	public void EndCommandGroup() {
+		if (this.groupIndex < 0) {
+			Debug.LogError("Command Grouping Failed.");
+			return;
+		}
+
+		if (this.groupIndex < this.cmdpos) {
+			var list = this.cmdlist.GetRange(this.groupIndex, this.cmdpos - this.groupIndex);
+			this.cmdlist.RemoveRange(this.groupIndex, this.cmdpos - this.groupIndex);
+
+			this.AddCommand(new Command(
+			() => {
+				for (int i = 0; i < list.Count; i++) {
+					list[i].Do();
+				}
+			}, () => {
+				for (int i = list.Count - 1; i >= 0; i--) {
+					list[i].Undo();
+				}
+			}));
+		}
+		this.cmdpos = this.groupIndex + 1;
+		this.groupIndex = -1;
+	}
+
 	public void AddBlock(Vector3 position, BlockDirection direction) {
 		EditLayer layer = this.CurrentLayer;
 		BlockShape shape = BlockShape.Find(this.toolBlock);
@@ -169,6 +204,12 @@ public partial class EditManager : MonoBehaviour
 	public void PaintBlock(Block block, BlockDirection direction, bool isObject, int textureChip) {
 		EditLayer layer = this.CurrentLayer;
 		int oldTextureChip = block.GetTextureChip(direction, isObject);
+		
+		// 同じ場合は反映しない
+		if (textureChip == oldTextureChip) {
+			return;
+		}
+
 		this.AddCommand(new Command(
 		() => {
 			block.SetTextureChip(direction, isObject, textureChip);

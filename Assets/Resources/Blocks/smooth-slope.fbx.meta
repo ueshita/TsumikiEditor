@@ -1,35 +1,27 @@
 fileFormatVersion: 2
-guid: 88bc2b8b8049a234ab376b341e0105ed
-timeCreated: 1502143463
+guid: 808b4b31d71836f49ab6ea99e1c2ff08
+timeCreated: 1510193397
 licenseType: Free
 ModelImporter:
   serializedVersion: 19
   fileIDToRecycleName:
-    100000: Object
-    100002: //RootNode
-    100004: Xminus
-    100006: Xplus
-    100008: Yminus
-    100010: Yplus
-    100012: Zminus
-    100014: Zplus
-    400000: Object
-    400002: //RootNode
-    400004: Xminus
-    400006: Xplus
-    400008: Yminus
-    400010: Yplus
-    400012: Zminus
-    400014: Zplus
-    2300000: Object
-    2300002: Zminus
-    2300004: Zplus
-    3300000: Object
-    3300002: Zminus
-    3300004: Zplus
-    4300000: Zplus
-    4300002: Zminus
-    4300004: Object
+    100000: //RootNode
+    100002: Xminus
+    100004: Xplus
+    100006: Yminus
+    100008: Yplus
+    100010: Zminus
+    100012: Zplus
+    400000: //RootNode
+    400002: Xminus
+    400004: Xplus
+    400006: Yminus
+    400008: Yplus
+    400010: Zminus
+    400012: Zplus
+    2300000: Yplus
+    3300000: Yplus
+    4300000: Yplus
   materials:
     importMaterials: 1
     materialName: 0

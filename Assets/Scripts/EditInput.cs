@@ -14,6 +14,7 @@ public class EditInput : MonoBehaviour,
 {
 	CameraController cameraController;	// 
 	Text cursorInfo;					// カーソル位置の表示
+	Text perfInfo;						// パフォーマンス情報の表示
 	Image selectionRect;				// 矩形選択の範囲の表示
 
 	bool dragging = false;
@@ -30,6 +31,7 @@ public class EditInput : MonoBehaviour,
 		this.selectionRect.color = new Color(1.0f, 1.0f, 1.0f, 0.5f);
 
 		this.cursorInfo = GameObject.Find("CursorInfo").GetComponent<Text>();
+		this.perfInfo = GameObject.Find("PerfInfo").GetComponent<Text>();
 	}
 	void Update() {
 		//Todo:Dragイベントは反応が遅い！Inputで実装する！
@@ -41,9 +43,17 @@ public class EditInput : MonoBehaviour,
 		point.y *= 2;
 		this.cursorInfo.text = String.Format(
 			"(x:{0,4})(y:{1,4})(z:{2,4})", 
-			Mathf.RoundToInt(point.x), 
-			Mathf.RoundToInt(point.y), 
+			Mathf.RoundToInt(point.x),
+			Mathf.RoundToInt(point.y),
 			Mathf.RoundToInt(point.z));
+
+		int numVertices = 0, numTriangles = 0;
+		foreach (var layer in EditManager.Instance.Layers) {
+			numVertices += layer.NumVertices;
+			numTriangles += layer.NumTriangles;
+		}
+		this.perfInfo.text = String.Format(
+			"{0} Verts\n{1} Polys", numVertices, numTriangles);
 	}
 
 	void OnGUI() {
@@ -75,7 +85,7 @@ public class EditInput : MonoBehaviour,
 				}
 			}
 		}
-		if (e.type == EventType.keyDown && e.control) {
+		if (e.type == EventType.KeyDown && e.control) {
 			// カット
 			if (e.keyCode == KeyCode.X) {
 				EditManager.Instance.Selector.CopyToClipboard();
@@ -186,6 +196,7 @@ public class EditInput : MonoBehaviour,
 	public void OnBeginDrag(PointerEventData e) {
 		this.dragging = true;
 		if (e.button == 0) {
+			this.OnObjectBeginDrag();
 		} else {
 			this.cameraController.OnBeginDrag((int)e.button, e.position);
 		}
@@ -195,6 +206,7 @@ public class EditInput : MonoBehaviour,
 	public void OnEndDrag(PointerEventData e) {
 		this.dragging = false;
 		if (e.button == 0) {
+			this.OnObjectEndDrag();
 		} else {
 			this.cameraController.OnEndDrag((int)e.button, e.position);
 		}
@@ -343,7 +355,30 @@ public class EditInput : MonoBehaviour,
 		}
 	}
 	
-	// オブジェクトをクリック
+	
+	public void OnObjectBeginDrag() {
+		var selector = EditManager.Instance.Selector;
+		var cursor = EditManager.Instance.Cursor;
+
+		switch (EditManager.Instance.GetTool()) {
+		case EditManager.Tool.Brush:
+			EditManager.Instance.BeginCommandGroup();
+			break;
+		}
+	}
+	
+	public void OnObjectEndDrag() {
+		var selector = EditManager.Instance.Selector;
+		var cursor = EditManager.Instance.Cursor;
+
+		switch (EditManager.Instance.GetTool()) {
+		case EditManager.Tool.Brush:
+			EditManager.Instance.EndCommandGroup();
+			break;
+		}
+	}
+
+	// オブジェクトをドラッグ
 	public void OnObjectDrag() {
 		var selector = EditManager.Instance.Selector;
 		var cursor = EditManager.Instance.Cursor;

@@ -83,9 +83,11 @@ public class BlockGroup
 		Mesh mesh = new Mesh();
 		mesh.name = "SurfaceBlocks";
 		mesh.vertices = this.surfaceMeshMerger.vertexPos.ToArray();
+		mesh.normals  = this.surfaceMeshMerger.vertexNormal.ToArray();
 		mesh.uv       = this.surfaceMeshMerger.vertexUv.ToArray();
+		mesh.uv2      = this.surfaceMeshMerger.vertexMeta.ToArray();
 		mesh.SetIndices(this.surfaceMeshMerger.triangles.ToArray(), MeshTopology.Triangles, 0);
-		mesh.RecalculateNormals();
+		//mesh.RecalculateNormals();
 		mesh.RecalculateBounds();
 		return mesh;
 	}
@@ -172,25 +174,34 @@ public class BlockGroup
 public class BlockMeshMerger
 {
 	public List<Vector3> vertexPos = new List<Vector3>();
+	public List<Vector3> vertexNormal = new List<Vector3>();
 	public List<Vector2> vertexUv = new List<Vector2>();
+	public List<Vector2> vertexMeta = new List<Vector2>();
 	public List<int> triangles = new List<int>();
 	
 	public void Clear() {
 		this.vertexPos.Clear();
+		this.vertexNormal.Clear();
 		this.vertexUv.Clear();
+		this.vertexMeta.Clear();
 		this.triangles.Clear();
 	}
 
-	public void Merge(Mesh mesh, Vector3 position, BlockDirection direction, int textureId, int meshIndex) {
+	public void Merge(Mesh mesh, Vector3 position, BlockDirection direction, Vector3 scale,
+		bool divideChipVert, int textureId, int meshId) {
 		var chip = TexturePalette.Instance.GetChip(textureId);
 		
 		int vertexOffset = this.vertexPos.Count;
 		Vector3[] vertexPos = mesh.vertices;
+		Vector3[] vertexNormal = mesh.normals;
 		Vector2[] vertexUv = mesh.uv;
 		for (int j = 0; j < vertexPos.Length; j++) {
-			Vector3 localPosition = Vector3.Scale(vertexPos[j], new Vector3(-1, 1, -1));
+			Vector3 localPosition = Vector3.Scale(vertexPos[j], Vector3.Scale(new Vector3(-1, 1, -1), scale));
+			Vector3 localNormal = Vector3.Scale(vertexNormal[j], new Vector3(-1, 1, -1));
 			this.vertexPos.Add(position + EditUtil.RotatePosition(localPosition, direction));
-			this.vertexUv.Add(chip.ApplyUV(vertexUv[j], meshIndex, position.y));
+			this.vertexNormal.Add(EditUtil.RotatePosition(localNormal, direction));
+			this.vertexUv.Add(chip.ApplyUV(vertexUv[j], divideChipVert, position.y));
+			this.vertexMeta.Add(new Vector2((float)meshId, 0.0f));
 		}
 		int[] indices = mesh.GetIndices(0);
 		for (int j = 0; j < indices.Length; j++) {

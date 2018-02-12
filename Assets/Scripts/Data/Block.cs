@@ -57,8 +57,8 @@ public class Block
 		this.direction = direction;
 	}
 
-	public int GetTextureChip(BlockDirection direction, bool isObject) {
-		return this.textureChips[(isObject) ? 6 : (int)direction];
+	public int GetTextureChip(BlockDirection direction, bool isObject = false) {
+		return this.textureChips[(isObject) ? 6 : ToLocalDirection((int)direction)];
 	}
 
 	public void SetTextureChip(BlockDirection direction, bool isObject, int textureChip) {
@@ -97,7 +97,7 @@ public class Block
 	}
 
 	// 隣のブロックとの閉塞チェック
-	private bool CheckOcculusion(BlockGroup group, BlockDirection direction) {
+	private bool IsOcculuded(BlockGroup group, BlockDirection direction) {
 		int dirIndex = (int)direction;
 		// 隣のブロックに完全に覆われていたら省略する（閉塞チェック）
 		Block neighborBlock = group.GetBlock(this.position + EditManager.Instance.ToWorldCoordinate(neighborOffsets[dirIndex]));
@@ -116,7 +116,13 @@ public class Block
 				}
 			}
 		}
+
 		return false;
+	}
+
+	private bool IsCombinable(BlockDirection direction) {
+		var con = this.GetConnection(direction);
+		return (con == BlockConnection.Square || con == BlockConnection.Wall);
 	}
 
 	// 表示用メッシュを出力
@@ -127,27 +133,61 @@ public class Block
 			WriteToMeshAutoPlacement(blockGroup, meshMerger);
 		} else {
 			// 6方向ブロックメッシュ
-			WriteToMeshNormal(blockGroup, meshMerger);
+			WriteToMeshStandard(blockGroup, meshMerger);
 		}
 	}
 	
 	// 6方向ブロックメッシュ
-	public void WriteToMeshNormal(BlockGroup blockGroup, BlockMeshMerger meshMerger) {
+	public void WriteToMeshStandard(BlockGroup blockGroup, BlockMeshMerger meshMerger) {
 		BlockShape shape = this.shape;
 		for (int i = 0; i < shape.meshes.Length; i++) {
 			int index = this.ToLocalDirection(i);
-				
+
 			var mesh = shape.meshes[index];
 			if (mesh == null) {
 				continue;
 			}
 
 			// 隣のブロックに完全に覆われていたら省略する
-			if (i < 6 && this.CheckOcculusion(blockGroup, (BlockDirection)i)) {
+			if (i < 6 && this.IsOcculuded(blockGroup, (BlockDirection)i)) {
 				continue;
 			}
-				
-			meshMerger.Merge(mesh, this.position, this.direction, this.textureChips[index], i);
+			
+			// 一番下の底面は省略する
+			if ((BlockDirection)i == BlockDirection.Yminus && this.position.y == 0.0f) {
+				continue;
+			}
+
+			Vector3 position = this.position;
+			Vector3 scale = Vector3.one;
+			// 側面パネルの場合は分割する
+			bool divideChipVert = shape.divideChipVert && i < 6 && 
+				(BlockDirection)i != BlockDirection.Yplus &&
+				(BlockDirection)i != BlockDirection.Yminus;
+			if (divideChipVert && this.IsCombinable((BlockDirection)i)) {
+				BlockDirection direction = (BlockDirection)i;
+				// 上下に2個続いているブロックをまとめる
+				if (this.position.y - Math.Floor(this.position.y) >= 0.5f) {
+					Block neighborBlock = blockGroup.GetBlock(this.position - new Vector3(0, 0.5f, 0));
+					if (neighborBlock != null && neighborBlock.IsCombinable(direction) && 
+						this.GetTextureChip(direction) == neighborBlock.GetTextureChip(direction)) {
+						divideChipVert = false;
+						position.y -= 0.25f;
+						scale.y = 2.0f;
+					}
+				} else {
+					Block neighborBlock = blockGroup.GetBlock(this.position + new Vector3(0, 0.5f, 0));
+					if (neighborBlock != null && neighborBlock.IsCombinable(direction) &&
+						this.GetTextureChip(direction) == neighborBlock.GetTextureChip(direction)) {
+						if (!neighborBlock.IsOcculuded(blockGroup, direction)) {
+							continue;
+						}
+					}
+				}
+			}
+
+			meshMerger.Merge(mesh, position, this.direction, scale,
+				divideChipVert, this.textureChips[index], i);
 		}
 	}
 	
@@ -197,7 +237,8 @@ public class Block
 				continue;
 			}
 
-			meshMerger.Merge(mesh, this.position, this.direction, this.textureChips[6], 0);
+			meshMerger.Merge(mesh, this.position, this.direction, Vector3.one,
+				shape.divideChipVert, this.textureChips[6], 0);
 		}
 	}
 
@@ -208,7 +249,8 @@ public class Block
 		bool vertexHasWrote = false;
 		for (int i = 0; i < 6; i++) {
 			// 隣のブロックに完全に覆われていたら省略する
-			if (this.CheckOcculusion(blockGroup, (BlockDirection)i)) {
+			bool occuludes = false;
+			if (this.IsOcculuded(blockGroup, (BlockDirection)i)) {
 				continue;
 			}
 

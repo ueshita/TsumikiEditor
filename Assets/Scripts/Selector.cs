@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Xml;
 using System.Text;
-using System.Windows.Forms;
 
 public class Selector : MonoBehaviour
 {
@@ -72,9 +71,9 @@ public class Selector : MonoBehaviour
 	void LateUpdate() {
 		if (this.dirtyMesh) {
 			this.selectedBlocks.UpdateMesh();
-			this.selectedBlockGuide.SetMesh(this.selectedBlocks.GetGuideMesh(), this.selectedBlocks.GetWireMesh());
+			this.selectedBlockGuide.SetMesh(this.selectedBlocks.GetGuideMesh(), this.selectedBlocks.GetWireMesh(), true);
 			this.selectedModels.UpdateMesh();
-			this.selectedModelGuide.SetMesh(this.selectedModels.GetGuideMesh(), this.selectedModels.GetWireMesh());
+			this.selectedModelGuide.SetMesh(this.selectedModels.GetGuideMesh(), this.selectedModels.GetWireMesh(), true);
 			this.dirtyMesh = false;
 		}
 	}
@@ -408,15 +407,11 @@ public class Selector : MonoBehaviour
 		writer.Close();
 
 		string stringData = strstm.ToString();
-
-		DataObject data = new DataObject();
-		data.SetData(DataFormats.Text, stringData);
-		Clipboard.SetDataObject(data);
+		Clipboard.SetTextData(stringData);
 	}
 
 	public void PasteFromClipboard() {
-		IDataObject data = Clipboard.GetDataObject();
-		string stringData = (string)data.GetData(DataFormats.Text);
+		string stringData = Clipboard.GetTextData();
 		if (stringData == null) {
 			return;
 		}

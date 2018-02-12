@@ -253,22 +253,11 @@ public class EditUtil
 		right = worldDir[rightDirIndex];
 	}
 
-}
-
-public struct Vector3i
-{
-	public int x, y, z;
-	public Vector3i(Vector3 vec) {
-		this.x = Mathf.RoundToInt(vec.x);
-		this.y = Mathf.RoundToInt(vec.y);
-		this.z = Mathf.RoundToInt(vec.z);
-	}
-	public Vector3i(float x, float y, float z) {
-		this.x = Mathf.RoundToInt(x);
-		this.y = Mathf.RoundToInt(y);
-		this.z = Mathf.RoundToInt(z);
-	}
-	public static Vector3i operator+(Vector3i lhs, Vector3i rhs) {
-		return new Vector3i(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z);
+	// ブロック位置を修正する
+	public static Vector3 ResolvePosition(Vector3 position) {
+		position.x = Mathf.Round(position.x);
+		position.y = Mathf.Round(position.y * 2) * 0.5f;
+		position.z = Mathf.Round(position.z);
+		return position;
 	}
 }

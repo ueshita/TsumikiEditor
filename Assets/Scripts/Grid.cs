@@ -7,6 +7,10 @@ public class Grid : MonoBehaviour
 		int sizeX = 100, sizeZ = 100;
 
 		var meshFilter = this.gameObject.AddComponent<MeshFilter>();
+		var oldMesh = meshFilter.sharedMesh;
+		if (oldMesh) {
+			DestroyImmediate(oldMesh, true);
+		}
 		meshFilter.sharedMesh = EditUtil.CreateGrid(sizeX, sizeZ);
 		
 		var meshRenderer = this.gameObject.AddComponent<MeshRenderer>();

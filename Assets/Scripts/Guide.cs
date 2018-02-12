@@ -8,7 +8,8 @@ public class Guide : MonoBehaviour
 	private MeshRenderer surfaceRenderer;
 	private MeshFilter outlineMeshFilter;
 	private MeshRenderer outlineRenderer;
-	
+	private bool shouldDestroy = false;
+
 	void Awake() {
 		surfaceMeshFilter = this.gameObject.AddComponent<MeshFilter>();
 		surfaceRenderer = this.gameObject.AddComponent<MeshRenderer>();
@@ -33,8 +34,19 @@ public class Guide : MonoBehaviour
 		outlineRenderer.material.SetColor("_Color2",  color2);
 	}
 	
-	public void SetMesh(Mesh surface, Mesh outline) {
+	public void SetMesh(Mesh surface, Mesh outline, bool shouldDestroy) {
+		// 解放する必要あり
+		if (this.shouldDestroy) {
+			if (surfaceMeshFilter.sharedMesh) {
+				DestroyImmediate(surfaceMeshFilter.sharedMesh);
+			}
+			if (outlineMeshFilter.sharedMesh) {
+				DestroyImmediate(outlineMeshFilter.sharedMesh);
+			}
+		}
+
 		surfaceMeshFilter.sharedMesh = surface;
 		outlineMeshFilter.sharedMesh = outline;
+		this.shouldDestroy = shouldDestroy;
 	}
 }
