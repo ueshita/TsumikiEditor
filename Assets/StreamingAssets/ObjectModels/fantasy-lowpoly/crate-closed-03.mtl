@@ -1,0 +1,9 @@
+# Created by Metasequoia
+
+newmtl asset_mat
+Ka 0.35294 0.35294 0.35294
+Kd 0.47059 0.47059 0.47059
+Ks 0.00000 0.00000 0.00000
+Ns 5.00000
+map_Kd crate-closed-03.png
+

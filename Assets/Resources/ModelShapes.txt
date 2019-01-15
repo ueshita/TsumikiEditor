@@ -1,9 +1,0 @@
-{"data": [
-	{
-		"name": "tree",
-		"id": 100,
-		"displayName":"木",
-		"scale": 10.0,
-		"enterable": false,
-	},
-]}

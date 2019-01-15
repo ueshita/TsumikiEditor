@@ -5,9 +5,9 @@ using System.Xml;
 
 public class RoutePath : MonoBehaviour
 {
-	Guide guide;
-	bool dirtyMesh;
-	
+	private Guide guide;
+
+	public bool dirtyMesh = false;
 	public bool isSelected = false;
 	public Vector3 selectedPosition;
 

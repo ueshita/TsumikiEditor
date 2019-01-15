@@ -84,27 +84,41 @@ public class EditCursor : MonoBehaviour
 		}
 		
 		this.transform.rotation = Quaternion.identity;
-		var meshFilter = shape.prefab.GetComponent<MeshFilter>();
-		this.guide.SetMesh(meshFilter.sharedMesh, null, false);
-		this.guide.transform.localPosition = Vector3.zero;
+		//this.guide.SetMesh(shape.model.GetMesh(0), null, false);
+		this.guide.SetModel(shape);
+		this.guide.transform.localPosition = shape.offset;
 		this.guide.transform.localScale = Vector3.one * shape.scale;
+		this.guide.transform.localRotation = Quaternion.identity;
+	}
+	
+	public void SetMesh(Mesh mesh) {
+		this.transform.rotation = Quaternion.identity;
+		this.guide.SetMesh(mesh, null, false);
+		this.guide.transform.localPosition = Vector3.zero;
+		this.guide.transform.localScale = Vector3.one;
 		this.guide.transform.localRotation = Quaternion.identity;
 	}
 
 	// カーソルをモデルの外形にセットする
 	public void SetModelBound(Model model) {
 		this.transform.rotation = Quaternion.identity;
-		var meshFilter = model.gameObject.GetComponent<MeshFilter>();
-		var mesh = meshFilter.sharedMesh;
-		this.guide.SetMesh(this.blockSurfaceMesh, this.blockLineMesh, false);
-		
-		this.guide.transform.localScale = 
-			Vector3.Scale(mesh.bounds.size, new Vector3(1.0f, 2.0f, 1.0f)) * 
-			(model.shape.scale * model.scale);
-		this.guide.transform.localPosition = model.offset + 
-			mesh.bounds.center * (model.shape.scale * model.scale);
 
-		this.guide.transform.localRotation = Quaternion.AngleAxis(model.rotation, Vector3.up);
+		float totalScale = model.shape.scale * model.scale;
+		Quaternion rotation = Quaternion.AngleAxis(180.0f - model.rotation, Vector3.up);
+
+		Bounds bounds = new Bounds();
+		foreach (var meshFilter in model.gameObject.GetComponentsInChildren<MeshFilter>()) {
+			Mesh mesh = meshFilter.sharedMesh;
+			bounds.SetMinMax(
+				Vector3.Min(mesh.bounds.min, bounds.min),
+				Vector3.Max(mesh.bounds.max, bounds.max));
+		}
+
+		this.guide.SetMesh(this.blockSurfaceMesh, this.blockLineMesh, false);
+		this.guide.transform.localScale = Vector3.Scale(bounds.size, new Vector3(1.0f, 2.0f, 1.0f)) * totalScale;
+		this.guide.transform.localRotation = rotation;
+		this.guide.transform.localPosition = model.offset + model.shape.offset + 
+			Matrix4x4.Rotate(rotation).MultiplyVector(bounds.center * totalScale);
 	}
 
 	public void Update() {
@@ -116,10 +130,15 @@ public class EditCursor : MonoBehaviour
 		
 		this.block = null;
 		this.model = null;
-		if (point.gameObject == EditManager.Instance.CurrentLayer.gameObject) {
-			this.block = EditManager.Instance.CurrentLayer.GetBlock(point.position);
-		} else if (point.gameObject != null) {
-			this.model = EditManager.Instance.CurrentLayer.GetModel(point.gameObject);
+		if (point.gameObject != null) { 
+			var layer = point.gameObject.GetComponent<EditLayer>();
+			if (layer != null) {
+				if (layer == EditManager.Instance.CurrentLayer) {
+					this.block = layer.GetBlock(point.position);
+				}
+			} else {
+				this.model = EditManager.Instance.CurrentLayer.GetModel(point.gameObject);
+			}
 		}
 
 		switch (EditManager.Instance.GetTool()) {
@@ -163,66 +182,39 @@ public class EditCursor : MonoBehaviour
 				// 面カーソルを置く
 				visible = true;
 				this.panelDirection = EditUtil.VectorToDirection(point.normal);
-				//var block = EditManager.Instance.CurrentLayer.GetBlock(point.position);
-				
-				//if (block.GetMesh(this.panelDirection) != null) {
-				if (point.meshId >= (int)BlockDirection.Zplus &&
-					point.meshId <= (int)BlockDirection.Yminus) {
+
+				Mesh mesh = this.block.GetMesh(this.panelDirection);
+				if (mesh != null) {
 					// 面が選択されている
 					this.objectSelected = false;
-					this.SetPanel();
-					Vector3 position = point.position + point.normal * 0.01f;
-					position = new Vector3(Mathf.Round(position.x), Mathf.Round(position.y * 2.0f) * 0.5f, Mathf.Round(position.z));
-					switch (this.panelDirection) {
-					case BlockDirection.Yplus:
-						this.transform.rotation = Quaternion.identity;
-						this.transform.localScale = Vector3.one;
-						this.transform.position = position + new Vector3(0.0f, 0.25f, 0.0f);
-						break;
-					case BlockDirection.Yminus:
-						this.transform.rotation = Quaternion.Euler(180, 0, 0);
-						this.transform.localScale = Vector3.one;
-						this.transform.position = position + new Vector3(0.0f, -0.25f, 0.0f);
-						break;
-					case BlockDirection.Zplus:
-						this.transform.rotation = Quaternion.Euler(90, 180, 0);
-						this.transform.localScale = new Vector3(1.0f, 1.0f, 0.5f);
-						this.transform.position = position + new Vector3(0.0f, 0.0f, -0.5f);
-						break;
-					case BlockDirection.Zminus:
-						this.transform.rotation = Quaternion.Euler(90, 0, 0);
-						this.transform.localScale = new Vector3(1.0f, 1.0f, 0.5f);
-						this.transform.position = position + new Vector3(0.0f, 0.0f, 0.5f);
-						break;
-					case BlockDirection.Xplus:
-						this.transform.rotation = Quaternion.Euler(90, 90, 0);
-						this.transform.localScale = new Vector3(1.0f, 1.0f, 0.5f);
-						this.transform.position = position + new Vector3(0.5f, 0.0f, 0.0f);
-						break;
-					case BlockDirection.Xminus:
-						this.transform.rotation = Quaternion.Euler(90, 270, 0);
-						this.transform.localScale = new Vector3(1.0f, 1.0f, 0.5f);
-						this.transform.position = position + new Vector3(-0.5f, 0.0f, 0.0f);
-						break;
-					}
+					this.SetMesh(mesh);
 				} else {
-					// 面のメッシュが存在していないなら、オブジェクトが選択されている
-					this.objectSelected = true;
-					this.SetBlock();
-					this.transform.position = point.position;
-					this.transform.rotation = Quaternion.identity;
-					this.transform.localScale = Vector3.one;
+					mesh = this.block.GetObjectMesh();
+					if (mesh != null) {
+						// オブジェクトが選択されている
+						this.objectSelected = true;
+						this.SetMesh(mesh);
+					} else {
+						this.SetBlock();
+					}
 				}
+
+				Vector3 position = point.position + point.normal * 0.01f;
+				this.transform.position = new Vector3(Mathf.Round(position.x), Mathf.Round(position.y * 2.0f) * 0.5f, Mathf.Round(position.z));
+				this.transform.rotation = Quaternion.AngleAxis(
+					EditUtil.DirectionToAngle(this.block.direction) + 180.0f, Vector3.up);
+				this.transform.localScale = Vector3.one;
 			}
 			break;
 		case EditManager.Tool.Model:
 			if (cursorEnabled) {
-				// ブロックの上に立体カーソルを置く
-				point.position += new Vector3(0.0f, 0.25f, 0.0f);
+				// 手前に立体カーソルを置く
 				visible = true;
-				this.point = point.position;
-				this.transform.position = point.position;
-				this.transform.rotation = Quaternion.identity;
+				this.point = EditUtil.ResolvePosition(point.position + 
+					new Vector3(point.normal.x, point.normal.y * 0.5f, point.normal.z));
+				this.transform.position = this.point;
+				this.transform.rotation = Quaternion.AngleAxis(
+					EditUtil.DirectionToAngle(this.blockDirection), Vector3.up);
 				this.transform.localScale = Vector3.one;
 			}
 			break;
@@ -232,10 +224,13 @@ public class EditCursor : MonoBehaviour
 				EditUtil.VectorToDirection(point.normal) == BlockDirection.Yplus
 			) {
 				this.point = point.position;
-				// 面カーソルを置く
 				visible = true;
-				this.transform.position = point.position + 
-					new Vector3(point.normal.x * 0.5f, point.normal.y * 0.25f, point.normal.z * 0.5f);
+				// 面カーソルを置く
+				this.SetPanel();
+				Vector3 position = point.position + point.normal * 0.01f;
+				this.transform.position = new Vector3(Mathf.Round(position.x), 
+					Mathf.Round(position.y * 2.0f) * 0.5f + 0.25f, 
+					Mathf.Round(position.z));
 				this.panelDirection = BlockDirection.Yplus;
 				this.transform.rotation = Quaternion.identity;
 				this.transform.localScale = Vector3.one;

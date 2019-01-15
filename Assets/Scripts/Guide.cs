@@ -9,6 +9,7 @@ public class Guide : MonoBehaviour
 	private MeshFilter outlineMeshFilter;
 	private MeshRenderer outlineRenderer;
 	private bool shouldDestroy = false;
+	private GameObject modelObject;
 
 	void Awake() {
 		surfaceMeshFilter = this.gameObject.AddComponent<MeshFilter>();
@@ -33,8 +34,8 @@ public class Guide : MonoBehaviour
 		outlineRenderer.material.SetColor("_Color1",  color1);
 		outlineRenderer.material.SetColor("_Color2",  color2);
 	}
-	
-	public void SetMesh(Mesh surface, Mesh outline, bool shouldDestroy) {
+
+	void Reset() {
 		// 解放する必要あり
 		if (this.shouldDestroy) {
 			if (surfaceMeshFilter.sharedMesh) {
@@ -44,9 +45,26 @@ public class Guide : MonoBehaviour
 				DestroyImmediate(outlineMeshFilter.sharedMesh);
 			}
 		}
+		surfaceMeshFilter.sharedMesh = null;
+		outlineMeshFilter.sharedMesh = null;
+		if (this.modelObject) {
+			GameObject.DestroyImmediate(this.modelObject);
+			this.modelObject = null;
+		}
+	}
 
+	public void SetMesh(Mesh surface, Mesh outline, bool shouldDestroy) {
+		this.Reset();
 		surfaceMeshFilter.sharedMesh = surface;
 		outlineMeshFilter.sharedMesh = outline;
 		this.shouldDestroy = shouldDestroy;
+	}
+
+	public void SetModel(ModelShape shape) {
+		this.Reset();
+		GameObject go = this.modelObject = shape.Build(surfaceRenderer.sharedMaterial);
+		go.transform.parent = this.gameObject.transform;
+		go.transform.localPosition = Vector3.zero;
+		go.transform.localScale = Vector3.one;
 	}
 }

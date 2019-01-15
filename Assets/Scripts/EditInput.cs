@@ -118,6 +118,9 @@ public class EditInput : MonoBehaviour,
 			EditManager.Instance.MetaInfo.IsFocused()) {
 			return;
 		}
+		
+		var selector = EditManager.Instance.Selector;
+		var cursor = EditManager.Instance.Cursor;
 
 		this.modifierControl = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
 		this.modifierShift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
@@ -125,54 +128,54 @@ public class EditInput : MonoBehaviour,
 		if (this.modifierControl) {
 		} else if (this.modifierShift) {
 			if (Input.GetKeyDown(KeyCode.UpArrow)) {
-				EditManager.Instance.Selector.Expand(new Vector2(0.0f, 1.0f));
+				selector.Expand(new Vector2(0.0f, 1.0f));
 			}
 			if (Input.GetKeyDown(KeyCode.DownArrow)) {
-				EditManager.Instance.Selector.Expand(new Vector2(0.0f, -1.0f));
+				selector.Expand(new Vector2(0.0f, -1.0f));
 			}
 			if (Input.GetKeyDown(KeyCode.LeftArrow)) {
-				EditManager.Instance.Selector.Expand(new Vector2(-1.0f, 0.0f));
+				selector.Expand(new Vector2(-1.0f, 0.0f));
 			}
 			if (Input.GetKeyDown(KeyCode.RightArrow)) {
-				EditManager.Instance.Selector.Expand(new Vector2(1.0f, 0.0f));
+				selector.Expand(new Vector2(1.0f, 0.0f));
 			}
 		} else {
 			// 削除
 			if (Input.GetKeyDown(KeyCode.Delete)) {
 				EditManager.Instance.RemoveObjects(
-					EditManager.Instance.Selector.GetSelectedBlocks(),
-					EditManager.Instance.Selector.GetSelectedModels());
+					selector.GetSelectedBlocks(),
+					selector.GetSelectedModels());
 			}
 			// 確定
 			if (Input.GetKeyDown(KeyCode.Return)) {
-				EditManager.Instance.Selector.ReleaseBlocks();
+				selector.ReleaseBlocks();
 			}
 			// 移動
 			if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow)) {
-				EditManager.Instance.Selector.Move(new Vector2(0.0f, 1.0f));
+				selector.Move(new Vector2(0.0f, 1.0f));
 			}
 			if (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow)) {
-				EditManager.Instance.Selector.Move(new Vector2(0.0f, -1.0f));
+				selector.Move(new Vector2(0.0f, -1.0f));
 			}
 			if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow)) {
-				EditManager.Instance.Selector.Move(new Vector2(-1.0f, 0.0f));
+				selector.Move(new Vector2(-1.0f, 0.0f));
 			}
 			if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow)) {
-				EditManager.Instance.Selector.Move(new Vector2(1.0f, 0.0f));
+				selector.Move(new Vector2(1.0f, 0.0f));
 			}
 			// 回転
 			if (Input.GetKeyDown(KeyCode.Q)) {
-				if (EditManager.Instance.Selector.HasSelectedObjects()) {
-					EditManager.Instance.Selector.Rotate(1);
+				if (selector.HasSelectedObjects()) {
+					selector.Rotate(-1);
 				} else {
-					EditManager.Instance.Cursor.TurnBlock(1);
+					cursor.TurnBlock(1);
 				}
 			}
 			if (Input.GetKeyDown(KeyCode.E)) {
-				if (EditManager.Instance.Selector.HasSelectedObjects()) {
-					EditManager.Instance.Selector.Rotate(-1);
+				if (selector.HasSelectedObjects()) {
+					selector.Rotate(1);
 				} else {
-					EditManager.Instance.Cursor.TurnBlock(-1);
+					cursor.TurnBlock(-1);
 				}
 			}
 			// ツール指定
@@ -318,6 +321,9 @@ public class EditInput : MonoBehaviour,
 					} else if (routePath.CanAddPath(routePath.selectedPosition, block.position)) {
 						// 存在していなかったら追加
 						EditManager.Instance.AddRoutePath(routePath.selectedPosition, block.position);
+					} else if (routePath.selectedPosition == block.position) {
+						// 同じ位置の場合は侵入フラグをトグルする
+						EditManager.Instance.SetEnterable(block, !block.enterable);
 					}
 					routePath.isSelected = false;
 					EditManager.Instance.Selector.Clear();
@@ -334,7 +340,8 @@ public class EditInput : MonoBehaviour,
 				var foundModel = EditManager.Instance.CurrentLayer.GetModel(cursor.point);
 				if (foundModel == null) {
 					// モデル配置
-					EditManager.Instance.AddModel(cursor.point);
+					EditManager.Instance.AddModel(cursor.point,
+						(int)EditUtil.DirectionToAngle(EditManager.Instance.Cursor.blockDirection));
 				}
 			}
 			break;

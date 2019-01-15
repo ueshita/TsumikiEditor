@@ -23,6 +23,21 @@ public static class FileManager
 			return Dialogs.ShowFileDialog("Open project file", filter, lastDirPath, false);
 		}
 	}
+	
+	public enum ImportFormat {
+		RB1,
+	}
+	public static string OpenImportDialog(ImportFormat format) {
+		string filter;
+		switch (format) {
+		case ImportFormat.RB1:
+			filter = "RB1 File (*.txt)\0*.txt\0\0";
+			break;
+		default:
+			return null;
+		}
+		return Dialogs.ShowFileDialog("Import data", filter, lastDirPath, false);
+	}
 
 	public enum ExportFormat {
 		OBJ, E3D
@@ -31,7 +46,7 @@ public static class FileManager
 		string filter;
 		switch (format) {
 		case ExportFormat.OBJ:
-			filter = "Alias Wavefront OBJ File (*.obj)\0*.obj\0\0";
+			filter = "Wavefront OBJ File (*.obj)\0*.obj\0\0";
 			break;
 		case ExportFormat.E3D:
 			filter = "E3D Model Format v3 File (*.e3d)\0*.e3d\0\0";
@@ -87,6 +102,10 @@ public static class FileManager
 			var layerNode = layerList[i] as XmlElement;
 			var layerName = layerNode.GetAttribute("name");
 			var layer = EditManager.Instance.FindLayer(layerName);
+			if (layerNode.HasAttribute("texture")) {
+				string textureName = layerNode.GetAttribute("texture");
+				TexturePalette.Instance.SetTexture(textureName);
+			}
 			layer.Deserialize(layerNode);
 		}
 
@@ -126,6 +145,7 @@ public static class FileManager
 		foreach (var layer in EditManager.Instance.Layers) {
 			var layerNode = xml.CreateElement("layer");
 			layerNode.SetAttribute("name", layer.gameObject.name);
+			layerNode.SetAttribute("texture", TexturePalette.Instance.GetTextureName());
 			layer.Serialize(layerNode);
 			root.AppendChild(layerNode);
 		}

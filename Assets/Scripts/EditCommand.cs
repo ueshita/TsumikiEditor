@@ -219,11 +219,27 @@ public partial class EditManager : MonoBehaviour
 			layer.SetDirty();
 		}));
 	}
+
+	public void SetEnterable(Block block, bool enterable) {
+		EditLayer layer = this.CurrentLayer;
+		bool oldEnterable = block.enterable;
+
+		this.AddCommand(new Command(
+		() => {
+			block.enterable = enterable;
+			layer.SetDirty();
+			this.RoutePath.dirtyMesh = true;
+		}, () => {
+			block.enterable = oldEnterable;
+			layer.SetDirty();
+			this.RoutePath.dirtyMesh = true;
+		}));
+	}
 	
-	public void AddModel(Vector3 position) {
+	public void AddModel(Vector3 position, int rotation) {
 		EditLayer layer = this.CurrentLayer;
 		var modelShape = ModelShape.Find(this.toolModel);
-		var model = new Model(modelShape, position, 0);
+		var model = new Model(modelShape, position, rotation);
 
 		this.AddCommand(new Command(
 		() => {

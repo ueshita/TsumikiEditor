@@ -33,10 +33,12 @@ public class Model
 	}
 	
 	public void Show() {
-		this.gameObject = GameObject.Instantiate(this.shape.prefab);
+		this.gameObject = this.shape.Build(EditManager.Instance.ModelMaterial);
 		this.gameObject.transform.parent = EditManager.Instance.CurrentLayer.transform;
 		this.gameObject.transform.localScale = Vector3.one * this.shape.scale * this.scale;
-		this.gameObject.AddComponent<MeshCollider>();
+		foreach (var meshFilter in this.gameObject.GetComponentsInChildren<MeshFilter>()) {
+			meshFilter.gameObject.AddComponent<MeshCollider>();
+		}
 		this.SetPosition(this.position);
 		this.SetRotation(this.rotation);
 	}
@@ -52,7 +54,7 @@ public class Model
 		this.position = position;
 		this.hashCode = EditUtil.PositionToHashCode(position);
 		if (this.gameObject != null) {
-			this.gameObject.transform.position = this.position + this.offset;
+			this.gameObject.transform.position = this.position + this.shape.offset + this.offset;
 		}
 	}
 	
@@ -62,7 +64,7 @@ public class Model
 		offset.z = Mathf.Clamp(offset.z, -0.5f, 0.5f);
 		this.offset = offset;
 		if (this.gameObject != null) {
-			this.gameObject.transform.position = this.position + this.offset;
+			this.gameObject.transform.position = this.position + this.shape.offset + this.offset;
 		}
 	}
 	
@@ -71,7 +73,7 @@ public class Model
 		while (rotation >  180) rotation -= 360;
 		this.rotation = rotation;
 		if (this.gameObject != null) {
-			this.gameObject.transform.rotation = Quaternion.AngleAxis((float)rotation, Vector3.up);
+			this.gameObject.transform.rotation = Quaternion.AngleAxis(180.0f - this.rotation, Vector3.up);
 		}
 	}
 	
@@ -101,12 +103,12 @@ public class Model
 		if (node.HasAttribute("type")) {
 			string typeName = node.GetAttribute("type");
 			this.shape = ModelShape.Find(typeName);
+			if (this.shape == null) {
+				Debug.LogError("Unknown Model's type: " + typeName);
+				return;
+			}
 		} else {
 			Debug.LogError("Model's type element is not found.");
-			return;
-		}
-		if (this.shape == null) {
-			Debug.LogError("Unknown Model's type");
 			return;
 		}
 
@@ -143,16 +145,22 @@ public class Model
 	
 	// ガイド用メッシュを出力
 	public void WriteToGuideMesh(ModelMeshMerger meshMerger) {
+		Bounds bounds = new Bounds();
+		float totalScale = this.shape.scale * this.scale;
+
+		foreach (var meshFilter in this.gameObject.GetComponentsInChildren<MeshFilter>()) {
+			Mesh mesh = meshFilter.sharedMesh;
+			bounds.SetMinMax(
+				Vector3.Min(mesh.bounds.min, bounds.min),
+				Vector3.Max(mesh.bounds.max, bounds.max));
+		}
+
+		Vector3 localScale = Vector3.Scale(bounds.size, new Vector3(1.0f, 2.0f, 1.0f)) * totalScale;
+		Quaternion localRotation = Quaternion.AngleAxis(180.0f - this.rotation, Vector3.up);
+		Vector3 localPosition = this.shape.offset + this.offset + 
+			Matrix4x4.Rotate(localRotation).MultiplyVector(bounds.center * totalScale);
 		
-		var meshFilter = this.gameObject.GetComponent<MeshFilter>();
-		var mesh = meshFilter.sharedMesh;
-		Vector3 localScale = 
-			Vector3.Scale(mesh.bounds.size, new Vector3(1.0f, 2.0f, 1.0f)) * 
-			(this.shape.scale * this.scale);
-		Vector3 localPosition = mesh.bounds.center * (this.shape.scale * this.scale);
-		Quaternion localRotation = Quaternion.AngleAxis(this.rotation, Vector3.up);
-		
-		Matrix4x4 matrix = Matrix4x4.TRS(this.position + this.offset + localPosition, localRotation, localScale);
+		Matrix4x4 matrix = Matrix4x4.TRS(this.position + localPosition, localRotation, localScale);
 
 		// 頂点を書き出す
 		for (int j = 0; j < EditUtil.cubeVertices.Length; j++) {
@@ -161,7 +169,6 @@ public class Model
 		}
 		// インデックスを書き出す
 		for (int i = 0; i < 6; i++) {
-			
 			int offset = meshMerger.vertexPos.Count - EditUtil.cubeVertices.Length;
 			meshMerger.triangles.Add(offset + EditUtil.cubeQuadIndices[i * 4 + 0]);
 			meshMerger.triangles.Add(offset + EditUtil.cubeQuadIndices[i * 4 + 1]);

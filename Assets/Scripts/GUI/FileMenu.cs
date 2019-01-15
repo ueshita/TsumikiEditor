@@ -25,6 +25,12 @@ public class FileMenu : MonoBehaviour
 	public void SaveAsButton_OnClick() {
 		FileManager.SaveAs();
 	}
+	public void ImportRB1Button_OnClick() {
+		string path = FileManager.OpenImportDialog(FileManager.ImportFormat.RB1);
+		if (!String.IsNullOrEmpty(path)) {
+			RB1Importer.Import(path);
+		}
+	}
 	public void ExportOBJButton_OnClick() {
 		string path = FileManager.OpenExportDialog(FileManager.ExportFormat.OBJ);
 		if (!String.IsNullOrEmpty(path)) {

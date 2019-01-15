@@ -13,7 +13,7 @@ public class Selector : MonoBehaviour
 	ModelGroup selectedModels = new ModelGroup();
 
 	CaptureMode captureMode;
-	EditLayer captureLayer;
+	EditLayer capturedLayer;
 	Block[] capturedBlocks = null;
 	Model[] capturedModels = null;
 	Vector3 capturedCenter = Vector3.zero;
@@ -49,7 +49,7 @@ public class Selector : MonoBehaviour
 		var captureObj = new GameObject();
 		captureObj.name = "Captured";
 		captureObj.transform.parent = this.transform;
-		this.captureLayer = captureObj.AddComponent<EditLayer>();
+		this.capturedLayer = captureObj.AddComponent<EditLayer>();
 		
 		this.SetColorMode(ColorMode.Selection);
 	}
@@ -85,7 +85,7 @@ public class Selector : MonoBehaviour
 			Debug.LogError("Renderer not found in Original Layer.");
 			return;
 		}
-		var captureRenderer = this.captureLayer.GetComponent<MeshRenderer>();
+		var captureRenderer = this.capturedLayer.GetComponent<MeshRenderer>();
 		if (captureRenderer == null) {
 			Debug.LogError("Renderer not found in Capture Layer.");
 			return;
@@ -279,16 +279,19 @@ public class Selector : MonoBehaviour
 		if (blocks.Length == 0 && models.Length == 0) {
 			return;
 		}
-		
+
+		// キャプチャレイヤーのマテリアルをセット
+		this.capturedLayer.SetMaterial(EditManager.Instance.CurrentLayer.GetMaterial());
+
 		Vector3 sumPosition = Vector3.zero;
 
 		// キャプチャレイヤーに放り込む
 		foreach (var block in blocks) {
-			this.captureLayer.AddBlock(block);
+			this.capturedLayer.AddBlock(block);
 			sumPosition += block.position;
 		}
 		foreach (var model in models) {
-			this.captureLayer.AddModel(model);
+			this.capturedLayer.AddModel(model);
 			sumPosition += model.position;
 		}
 
@@ -300,7 +303,7 @@ public class Selector : MonoBehaviour
 		
 		this.capturedBlocks = blocks;
 		this.capturedModels = models;
-		this.captureLayer.transform.position = -this.capturedCenter;
+		this.capturedLayer.transform.position = -this.capturedCenter;
 		this.selectedBlockGuide.transform.position = -this.capturedCenter;
 		this.selectedModelGuide.transform.position = -this.capturedCenter;
 		this.transform.position = this.capturedCenter;
@@ -326,8 +329,8 @@ public class Selector : MonoBehaviour
 		Block[] blocks = this.capturedBlocks;
 		Model[] models = this.capturedModels;
 
-		this.captureLayer.RemoveBlocks(blocks);
-		this.captureLayer.RemoveModels(models, false);
+		this.capturedLayer.RemoveBlocks(blocks);
+		this.capturedLayer.RemoveModels(models, false);
 
 		Vector3 moveVector = this.transform.position - this.capturedCenter;
 		
@@ -362,7 +365,7 @@ public class Selector : MonoBehaviour
 		}
 		
 		this.transform.position = Vector3.zero;
-		this.captureLayer.transform.position = Vector3.zero;
+		this.capturedLayer.transform.position = Vector3.zero;
 		this.selectedBlockGuide.transform.position = Vector3.zero;
 		this.selectedModelGuide.transform.position = Vector3.zero;
 		this.transform.rotation = Quaternion.identity;

@@ -7,15 +7,30 @@
 		"panelVertices": [1.0, 1.0, 1.0, 1.0]
 	},
 	{
+		"name": "slope",
+		"displayName": "斜面",
+		"connection":    [0, 1, 3, 3, 0, 1], 
+		"connectionDir": [0, 0, 0, 0, 0, 0], 
+		"panelVertices": [0.0, 0.0, 1.0, 1.0]
+	},
+	{
 		"name": "diag-slope-large",
 		"displayName": "対角斜面(大)",
-		"connection":    [3, 1, 3, 0, 0, 1], 
+		"connection":    [3, 1, 3, 1, 0, 1], 
 		"connectionDir": [2, 0, 0, 0, 0, 0],
 		"panelVertices": [1.0, 0.0, 1.0, 1.0]
 	},
 	{
-		"name": "slope",
-		"displayName": "斜面",
+		"name": "diag-slope-small",
+		"displayName": "対角斜面(小)",
+		"connectionType": 2, 
+		"connection":    [0, 3, 0, 3, 0, 1], 
+		"connectionDir": [0, 2, 0, 0, 0, 0], 
+		"panelVertices": [0.0, 0.0, 1.0, 0.0]
+	},
+	{
+		"name": "smooth-slope",
+		"displayName": "カーブ斜面",
 		"connection":    [0, 1, 3, 3, 0, 1], 
 		"connectionDir": [0, 0, 0, 0, 0, 0], 
 		"panelVertices": [0.0, 0.0, 1.0, 1.0]
@@ -28,33 +43,26 @@
 		"panelVertices": [1.0, 1.0, 1.0, 1.0]
 	},
 	{
-		"name": "smooth-slope",
-		"displayName": "カーブ斜面",
-		"connection":    [0, 1, 3, 3, 0, 1], 
+		"name": "steep-slope",
+		"displayName": "急斜面",
+		"connection":    [0, 21, 22, 22, 0, 0], 
 		"connectionDir": [0, 0, 0, 0, 0, 0], 
-		"panelVertices": [0.0, 0.0, 1.0, 1.0]
+		"panelVertices": [0.0, 0.0, 2.0, 2.0]
 	},
 	{
-		"name": "diag-slope-small",
-		"displayName": "対角斜面(小)",
+		"name": "steep-diag-slope-large",
+		"displayName": "対角急斜面(大)",
+		"connection":    [22, 21, 22, 21, 0, 1], 
+		"connectionDir": [2, 0, 0, 0, 0, 0],
+		"panelVertices": [2.0, 0.0, 2.0, 2.0]
+	},
+	{
+		"name": "steep-diag-slope-small",
+		"displayName": "対角急斜面(小)",
 		"connectionType": 2, 
-		"connection":    [0, 3, 3, 0, 0, 1], 
-		"connectionDir": [0, 3, 0, 0, 0, 0], 
-		"panelVertices": [0.0, 0.0, 0.0, 1.0]
-	},
-	{
-		"name": "steep-slope-top",
-		"displayName": "急斜面(上)",
-		"connection":    [0, 1, 4, 4, 0, 0], 
-		"connectionDir": [0, 0, 0, 0, 0, 0], 
-		"panelVertices": [0.0, 0.0, 0.0, 0.0]
-	},
-	{
-		"name": "steep-slope-btm",
-		"displayName": "急斜面(下)",
-		"connection":    [0, 1, 5, 5, 0, 1], 
-		"connectionDir": [0, 0, 0, 0, 0, 0], 
-		"panelVertices": [1.0, 1.0, 1.0, 1.0]
+		"connection":    [0, 22, 0, 22, 0, 1], 
+		"connectionDir": [0, 2, 0, 0, 0, 0], 
+		"panelVertices": [0.0, 0.0, 2.0, 0.0]
 	},
 	{
 		"name": "stair",

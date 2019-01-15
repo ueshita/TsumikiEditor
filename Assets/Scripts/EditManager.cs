@@ -1,6 +1,4 @@
 ﻿using UnityEngine;
-using UnityEngine.UI;
-using System.Collections;
 using System.Collections.Generic;
 using System;
 using System.IO;
@@ -47,12 +45,16 @@ public partial class EditManager : MonoBehaviour
 	private GameObject texturePaletteListView;
 	private GameObject modelPaletteListView;
 
+	public Material BlockMaterial {get; private set;}
+	public Material WaterMaterial {get; private set;}
+	public Material ModelMaterial {get; private set;}
+
 	void Awake() {
 		if (EditManager.Instance) {
 			throw new Exception("EditManager is found.");
 		}
 		EditManager.Instance = this;
-		
+		Application.wantsToQuit += WantToQuit;
 		this.Layers = new List<EditLayer>();
 		
 		var gridObj = new GameObject("Grid");
@@ -81,16 +83,21 @@ public partial class EditManager : MonoBehaviour
 
 		this.LayerListView = GameObject.FindObjectOfType<LayerListView>();
 
+		this.BlockMaterial = Resources.Load<Material>("Materials/BlockMaterial");
+		this.WaterMaterial = Resources.Load<Material>("Materials/WaterMaterial");
+		this.ModelMaterial = Resources.Load<Material>("Materials/ModelMaterial");
+
 		BlockShape.LoadData();
 		ModelShape.LoadData();
 	}
 
-	void OnApplicationQuit() {
+	bool WantToQuit() {
 		if (Application.isEditor) {
-			return;
+			return true;
 		}
 
 		if (this.hasUnsavedData) {
+			// 未保存の編集がある場合、確認ダイアログを開く
 			if (!this.QuitDialog.IsOpened()) {
 				this.QuitDialog.Open((result) => {
 					if (result) {
@@ -99,8 +106,9 @@ public partial class EditManager : MonoBehaviour
 					}
 				});
 			}
-			Application.CancelQuit();
+			return false;
 		}
+		return true;
 	}
 	
 	public void OnDataSaved() {
@@ -134,6 +142,24 @@ public partial class EditManager : MonoBehaviour
 		WindowControl.SetWindowTitle(fileName + " - " + Application.productName);
 	}
 
+	public void OnTextureChanged() {
+		var material = this.Layers[0].GetMaterial();
+		
+		// Albedoテクスチャを設定
+		material.SetTexture("_MainTex", TexturePalette.Instance.GetTexture(0));
+
+		var emissionTexture = TexturePalette.Instance.GetTexture(1);
+		if (emissionTexture != null) {
+			// Emissionテクスチャが存在するときはEmissionを有効に
+			material.SetColor("_EmissionColor", Color.white);
+			material.SetTexture("_EmissionMap", emissionTexture);
+		} else {
+			// Emissionテクスチャが存在しないときはEmissionを無効に
+			material.SetColor("_EmissionColor", Color.black);
+			material.SetTexture("_EmissionMap", null);
+		}
+	}
+
 	void Start() {
 		this.Reset();
 		
@@ -146,18 +172,31 @@ public partial class EditManager : MonoBehaviour
 		//FileManager.Load("TestData/test01.tkd");
 	}
 	
+	private void ShowUIView(GameObject obj) {
+		var canvasGroup = obj.GetComponent<CanvasGroup>();
+		canvasGroup.alpha = 1.0f;
+		canvasGroup.interactable = true;
+		canvasGroup.blocksRaycasts = true;
+	}
+	private void HideUIView(GameObject obj) {
+		var canvasGroup = obj.GetComponent<CanvasGroup>();
+		canvasGroup.alpha = 0.0f;
+		canvasGroup.interactable = false;
+		canvasGroup.blocksRaycasts = false;
+	}
+
 	public void SetTool(Tool tool) {
 		this.tool = tool;
 
-		this.blockPaletteListView.SetActive(false);
-		this.texturePaletteListView.SetActive(false);
-		this.modelPaletteListView.SetActive(false);
+		HideUIView(this.blockPaletteListView);
+		HideUIView(this.texturePaletteListView);
+		HideUIView(this.modelPaletteListView);
 		
 		// カーソルにツールをセットする
 		switch (this.tool) {
 		case Tool.Block:
 			this.Cursor.SetBlock(this.toolBlock);
-			this.blockPaletteListView.SetActive(true);
+			ShowUIView(this.blockPaletteListView);
 			break;
 		case Tool.Eraser:
 		case Tool.PointSelector:
@@ -165,7 +204,7 @@ public partial class EditManager : MonoBehaviour
 			break;
 		case Tool.Brush:
 			this.Cursor.SetPanel();
-			this.texturePaletteListView.SetActive(true);
+			ShowUIView(this.texturePaletteListView);
 			break;
 		case Tool.Spuit:
 		case Tool.RoutePath:
@@ -173,7 +212,7 @@ public partial class EditManager : MonoBehaviour
 			break;
 		case Tool.Model:
 			this.Cursor.SetModel(this.toolModel);
-			this.modelPaletteListView.SetActive(true);
+			ShowUIView(this.modelPaletteListView);
 			break;
 		case Tool.MetaInfo:
 			this.Cursor.SetPanel();
@@ -243,10 +282,11 @@ public partial class EditManager : MonoBehaviour
 		return this.Layers[0];
 	}
 
-	public EditLayer AddLayer(string name, string materialName, string textureName) {
+	public EditLayer AddLayer(string name, string materialName) {
 		var obj = new GameObject(name);
 		var layer = obj.AddComponent<EditLayer>();
-		layer.SetMaterial(materialName, textureName);
+		layer.SubmeshEnabled = true;
+		layer.SetMaterial(materialName);
 		this.Layers.Add(layer);
 		this.LayerListView.UpdateView();
 		return layer;
@@ -272,8 +312,8 @@ public partial class EditManager : MonoBehaviour
 	public void Reset() {
 		this.Clear();
 		FileManager.Reset();
-		this.AddLayer("Layer-Blocks", "BlockMaterial", "rbn01");
-		this.AddLayer("Layer-Water", "WaterMaterial", null);
+		this.AddLayer("Layer-Blocks", "BlockMaterial");
+		this.AddLayer("Layer-Water", "WaterMaterial");
 		this.OnDataDiscarded();
 	}
 	
@@ -293,7 +333,7 @@ public partial class EditManager : MonoBehaviour
 	}
 
 	private void UpdateCollider() {
-		if (this.tool == Tool.Brush || this.tool == Tool.Spuit) {
+		if (this.tool == Tool.Brush || this.tool == Tool.Spuit || this.tool == Tool.PointSelector) {
 			// 現在のレイヤーしか選択できないようにする
 			foreach (var layer in this.Layers) {
 				layer.GetComponent<MeshCollider>().enabled = false;

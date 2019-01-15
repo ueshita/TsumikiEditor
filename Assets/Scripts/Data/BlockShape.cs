@@ -31,8 +31,10 @@ public enum BlockConnection {
 	ReverseSlope		= 18,	// 天井斜面
 
 	Wall				= 20,
-	
+	LargeSquare			= 21,
+	LargeSlope			= 22,
 }
+
 public class BlockShape
 {
 	public class Face
@@ -75,9 +77,15 @@ public class BlockShape
 
 	public bool InitWithDict(Dictionary<string, object> dict) {
 		this.name = (string)dict["name"];
-		this.displayName = (string)dict["displayName"];
-		this.connection = objectToBlockConnectionArray(dict["connection"]);
-		this.connectionDir = objectToBlockDirectionArray(dict["connectionDir"]);
+		if (dict.ContainsKey("displayName")) {
+			this.displayName = (string)dict["displayName"];
+		}
+		if (dict.ContainsKey("connection")) {
+			this.connection = objectToBlockConnectionArray(dict["connection"]);
+		}
+		if (dict.ContainsKey("connectionDir")) {
+			this.connectionDir = objectToBlockDirectionArray(dict["connectionDir"]);
+		}
 		if (dict.ContainsKey("panelVertices")) {
 			this.panelVertices = objectToFloatArray(dict["panelVertices"]);
 		}

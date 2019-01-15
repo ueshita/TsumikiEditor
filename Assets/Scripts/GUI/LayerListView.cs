@@ -5,6 +5,8 @@ using System.Collections.Generic;
 
 public class LayerListView : MonoBehaviour
 {
+	const float buttonHeight = 30.0f;
+
 	public RectTransform nodePrefab;
 	private List<Image> listItems = new List<Image>();
 	public int value {get; private set;}
@@ -12,10 +14,7 @@ public class LayerListView : MonoBehaviour
 	public void UpdateView() {
 		var viewport = this.transform.Find("Viewport");
 		var content = viewport.transform.Find("Content") as RectTransform;
-		
-		const float buttonHeight = 30.0f;
 		content.sizeDelta = new Vector2(content.sizeDelta.x, 1 * buttonHeight);
-		Vector2 offsetPosition = new Vector2(0, content.rect.height / 2);
 		
 		this.listItems.Clear();
 		var layers = EditManager.Instance.Layers;
@@ -25,9 +24,8 @@ public class LayerListView : MonoBehaviour
 
 			var node = GameObject.Instantiate(nodePrefab) as RectTransform;
 			node.SetParent(content, false);
-			node.anchoredPosition = offsetPosition - new Vector2(0, buttonHeight / 2);
+			node.anchoredPosition = new Vector2(0, -buttonHeight / 2 - i * buttonHeight);
 			node.sizeDelta = new Vector2(0, buttonHeight);
-			offsetPosition.y -= buttonHeight;
 			
 			// アイテムルート
 			var imageView = node.GetComponent<Image>();

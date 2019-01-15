@@ -1,11 +1,59 @@
 ﻿using System.IO;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public static class OBJLoader
 {
-	static public Mesh[] LoadMesh(string path) {
+	public class OBJMaterial {
+		public string name;
+		public Texture2D albedo;
+		public Texture2D emission;
+		public Texture2D normal;
+		public Texture2D specular;
+	}
+
+	public class OBJGroup {
+		public string name;
+		public Mesh mesh;
+		public OBJMaterial material;
+
+		public OBJGroup(string name, Mesh mesh) {
+			this.name = name;
+			this.mesh = mesh;
+		}
+	}
+
+	public class OBJModel {
+		public string name;
+		public OBJGroup[] groups;
+		public OBJMaterial[] materials;
+
+		public Mesh GetMesh(int index) {
+			return this.groups[index].mesh;
+		}
+
+		public GameObject Build(Material baseMaterial) {
+			GameObject root = new GameObject();
+			root.name = this.name;
+			foreach (OBJGroup group in this.groups) {
+				GameObject go = new GameObject();
+				go.transform.parent = root.transform;
+				go.name = group.name;
+				var meshFilter = go.AddComponent<MeshFilter>();
+				var meshRenderer = go.AddComponent<MeshRenderer>();
+				meshFilter.sharedMesh = group.mesh;
+				var material = new Material(baseMaterial);
+				material.mainTexture = group.material.albedo;
+				if (group.material.emission) material.SetTexture("_EmissionMap", group.material.emission);
+				if (group.material.normal) material.SetTexture("_BumpMap", group.material.normal);
+				if (group.material.specular) material.SetTexture("_SpecGlossMap", group.material.specular);
+				meshRenderer.sharedMaterial = material;
+			}
+			return root;
+		}
+	}
+
+	static public OBJModel LoadModel(string path) {
 		if (!File.Exists(path)) {
 			return null;
 		}
@@ -17,8 +65,10 @@ public static class OBJLoader
 		List<Vector3> normalList = new List<Vector3>();
 
 		MeshBuilder builder = new MeshBuilder();
-		List<Mesh> meshes = new List<Mesh>();
-		
+		List<OBJGroup> groups = new List<OBJGroup>();
+
+		var materials = LoadMTL(Path.GetDirectoryName(path) + "/" + Path.GetFileNameWithoutExtension(path) + ".mtl");
+			
 		foreach (string line in lines) {
 			if (line.Length == 0) {
 				continue;
@@ -31,15 +81,17 @@ public static class OBJLoader
 			if (tokens[0] == "v") {
 				positionList.Add(ParseVector3(tokens));
 			} else if (tokens[0] == "vt") {
-				texcoordList.Add(ParseVector2(tokens));
+				texcoordList.Add(ParseVector2(tokens) * new Vector2(1.0f, -1.0f));
 			} else if (tokens[0] == "vn") {
 				normalList.Add(ParseVector3(tokens));
 			} else if (tokens[0] == "g") {
 				if (builder.vertices.Count > 0) {
-					meshes.Add(builder.Build());
+					groups.Add(builder.Build(materials));
 				}
 				builder = new MeshBuilder();
 				builder.meshName = tokens[1];
+			} else if (tokens[0] == "usemtl") {
+				builder.mtlName = tokens[1];
 			} else if (tokens[0] == "f") {
 				for (int i = 1; i < tokens.Length; i++) {
 					string[] index = tokens[i].Split('/');
@@ -73,20 +125,62 @@ public static class OBJLoader
 		}
 
 		if (builder.vertices.Count > 0) {
-			meshes.Add(builder.Build());
+			groups.Add(builder.Build(materials));
 		}
-		return meshes.ToArray();
+
+		var loadedObj = new OBJModel();
+		loadedObj.name = Path.GetFileNameWithoutExtension(path);
+		loadedObj.groups = groups.ToArray();
+		loadedObj.materials = materials.ToArray();
+		return loadedObj;
+	}
+
+	public static List<OBJMaterial> LoadMTL(string path) {
+		if (!File.Exists(path)) {
+			return null;
+		}
+
+		string[] lines = File.ReadAllLines(path);
+		List<OBJMaterial> materials = new List<OBJMaterial>();
+
+		OBJMaterial currentMaterial = null;
+		foreach (string line in lines) {
+			if (line.Length == 0) {
+				continue;
+			}
+			if (line[0] == '#') {
+				continue;
+			}
+			
+			string[] tokens = line.Split(' ');
+			if (tokens[0] == "newmtl") {
+				currentMaterial = new OBJMaterial();
+				materials.Add(currentMaterial);
+				currentMaterial.name = tokens[1];
+			} else if (tokens[0] == "map_Kd") {
+				string dirName = Path.GetDirectoryName(path);
+				string textureName = Path.GetFileNameWithoutExtension(tokens[1]);
+				string textureExt = Path.GetExtension(tokens[1]);
+				currentMaterial.albedo   = EditUtil.LoadTextureFromFile(dirName + "/" + tokens[1]);
+				currentMaterial.emission = EditUtil.LoadTextureFromFile(dirName + "/" + textureName + "_e" + textureExt);
+				currentMaterial.normal   = EditUtil.LoadTextureFromFile(dirName + "/" + textureName + "_n" + textureExt);
+				currentMaterial.specular = EditUtil.LoadTextureFromFile(dirName + "/" + textureName + "_s" + textureExt);
+			}
+		}
+
+		return materials;
 	}
 
 	private class MeshBuilder
 	{
-		public string meshName = "";
+		public string meshName = null;
+		public string mtlName = null;
 		public List<Vector3> vertices = new List<Vector3>();
 		public List<Vector3> normals = new List<Vector3>();
 		public List<Vector2> uv = new List<Vector2>();
 		public List<int> triangles = new List<int>();
 
-		public Mesh Build()
+		public OBJGroup Build(List<OBJMaterial> materials)
 		{
 			Mesh mesh = new Mesh();
 			mesh.name = this.meshName;
@@ -100,7 +194,13 @@ public static class OBJLoader
 				mesh.RecalculateNormals();
 			}
 			mesh.RecalculateBounds();
-			return mesh;
+
+			var group = new OBJGroup(this.meshName, mesh);
+			if (materials != null) {
+				group.material = materials.Find((mat) => mat.name == this.mtlName);
+			}
+
+			return group;
 		}
 	};
 	

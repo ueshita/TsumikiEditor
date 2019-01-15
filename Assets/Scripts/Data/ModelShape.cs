@@ -8,34 +8,38 @@ using System.IO;
 public class ModelShape
 {
 	public readonly string name;
-	public readonly int id;
 	public readonly string displayName;
+	public readonly Vector3 offset;
 	public readonly float scale;
-	public readonly GameObject prefab;
+	public readonly OBJLoader.OBJModel model;
 	public readonly bool enterable;
 
-	public ModelShape(string name, int id, string displayName, 
-		GameObject prefab, float scale, bool enterable
+	public ModelShape(string name, string displayName, OBJLoader.OBJModel model, 
+		Vector3 offset, float scale, bool enterable
 	) {
 		this.name = name;
-		this.id = id;
 		this.displayName = displayName;
-		this.prefab = prefab;
+		this.model = model;
+		this.offset = offset;
 		this.scale = scale;
 		this.enterable = enterable;
 	}
+
+	public GameObject Build(Material baseMaterial) {
+		return this.model.Build(baseMaterial);
+	}
 	
 	public static ModelShape Find(string name) {
-		return table[name];
+		ModelShape shape;
+		return table.TryGetValue(name, out shape) ? shape : null;
 	}
 
 	public static ModelShape[] palette;
 	public static Dictionary<string, ModelShape> table;
 	
 	public static void LoadData() {
-		var jsonAsset = Resources.Load<TextAsset>("ModelShapes");
-		string jsonText = jsonAsset.text;
-
+		string jsonText = File.ReadAllText(Application.streamingAssetsPath + "/ModelShapes.json");
+		
 		var jsonDict = MiniJSON.Json.Deserialize(jsonText) as Dictionary<string, object>;
 		var data = jsonDict["data"] as List<object>;
 
@@ -46,18 +50,18 @@ public class ModelShape
 			var shape = data[i] as Dictionary<string, object>;
 
 			string name = (string)shape["name"];
-			int id = (int)(long)shape["id"];
-			string displayName = (string)shape["displayName"];
-			float scale = (float)(double)shape["scale"];
+			string path = (string)shape["path"];
+			string displayName = shape.ContainsKey("displayName") ? (string)shape["displayName"] : name;
+			float scale = shape.ContainsKey("scale") ? (float)(double)shape["scale"] : 1.0f;
+			float offsetY = shape.ContainsKey("offsetY") ? (float)(double)shape["offsetY"] : 0.0f;
+			bool enterable = shape.ContainsKey("enterable") ? (bool)shape["enterable"] : false;
 
-			var prefab = Resources.Load<GameObject>("Models/" + name);
-			if (prefab == null) {
-				Debug.LogError("Models/" + name + " is not found.");
+			var model = OBJLoader.LoadModel(Application.streamingAssetsPath + "/ObjectModels/" + path);
+			if (model != null) {
+				palette[i] = new ModelShape(name, displayName, model, new Vector3(0.0f, offsetY, 0.0f), scale, enterable);
+				table.Add(name, palette[i]);
+				ModelPalette.Instance.AddModel(name, displayName);
 			}
-			bool enterable = (bool)shape["enterable"];
-
-			palette[i] = new ModelShape(name, id, displayName, prefab, scale, enterable);
-			table.Add(name, palette[i]);
 		}
 	}
 

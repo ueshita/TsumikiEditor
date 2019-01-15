@@ -5,6 +5,8 @@ using System.Collections.Generic;
 
 public class BlockPalette : MonoBehaviour
 {
+	const float buttonHeight = 30.0f;
+
 	public RectTransform nodePrefab;
 	private List<Image> listItems = new List<Image>();
 	public int value {get; private set;}
@@ -13,18 +15,15 @@ public class BlockPalette : MonoBehaviour
 		var viewport = this.transform.Find("Viewport");
 		var content = viewport.transform.Find("Content") as RectTransform;
 		
-		const float buttonHeight = 30.0f;
 		content.sizeDelta = new Vector2(content.sizeDelta.x, BlockShape.palette.Count * buttonHeight);
-		Vector2 offsetPosition = new Vector2(0, content.rect.height / 2);
 		
 		for (int i = 0; i < BlockShape.palette.Count; i++) {
 			int index = i;
-
+			
 			var node = GameObject.Instantiate(nodePrefab) as RectTransform;
 			node.SetParent(content, false);
-			node.anchoredPosition = offsetPosition - new Vector2(0, buttonHeight / 2);
+			node.anchoredPosition = new Vector2(0, -buttonHeight / 2 - index * buttonHeight);
 			node.sizeDelta = new Vector2(0, buttonHeight);
-			offsetPosition.y -= buttonHeight;
 			
 			// アイテムルート
 			var imageView = node.GetComponent<Image>();

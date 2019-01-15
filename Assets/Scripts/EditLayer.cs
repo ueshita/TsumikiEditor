@@ -12,29 +12,45 @@ public class EditLayer : MonoBehaviour
 	private ModelGroup modelGroup = new ModelGroup();
 	bool dirtyMesh = false;
 
+	private List<GameObject> subLayers = new List<GameObject>();
+	private Material material;
+
 	public int NumVertices {get; private set;}
 	public int NumTriangles {get; private set;}
+	public bool SubmeshEnabled {get; set;}
 	
 	void Awake() {
 		this.gameObject.AddComponent<MeshFilter>();
 		this.gameObject.AddComponent<MeshCollider>();
 		this.gameObject.AddComponent<MeshRenderer>();
+
+		this.blockGroup.SetSurfaceSubMesh(new Vector3i(3, 10, 3));
 	}
 
-	void Update() {
+	void LateUpdate() {
 		if (this.dirtyMesh) {
 			this.UpdateMesh();
+			if (this.SubmeshEnabled) {
+				this.UpdateSubMeshes();
+			}
+			this.dirtyMesh = false;
 		}
 	}
 	
-	public void SetMaterial(string materialName, string textureName) {
+	public void SetMaterial(string materialName) {
 		var material = Resources.Load<Material>("Materials/" + materialName);
-		if (!String.IsNullOrEmpty(textureName)) {
-			material.mainTexture = Resources.Load<Texture>("Textures/" + textureName);
-		}
+		this.SetMaterial(material);
+	}
+
+	public void SetMaterial(Material material) {
+		this.material = material;
 		var meshRenderer = this.GetComponent<MeshRenderer>();
-		meshRenderer.material = material;
+		meshRenderer.sharedMaterial = this.material;
 		meshRenderer.shadowCastingMode = ShadowCastingMode.TwoSided;
+	}
+
+	public Material GetMaterial() {
+		return material;
 	}
 
 	public void Clear() {
@@ -153,6 +169,37 @@ public class EditLayer : MonoBehaviour
 
 		this.NumVertices = newMesh.vertices.Length;
 		this.NumTriangles = newMesh.triangles.Length / 3;
+	}
+	
+	// カリングを有効にするためサブメッシュに分割する
+	protected void UpdateSubMeshes() {
+		Mesh[] newMeshes = this.blockGroup.GetSurfaceSubMeshes();
+		// サブメッシュ用オブジェクトを増やす
+		for (int i = this.subLayers.Count; i < newMeshes.Length; i++) {
+			GameObject layer = new GameObject();
+			layer.name = "SubLayer-" + i;
+			layer.transform.parent = this.transform;
+			layer.transform.localPosition = Vector3.zero;
+			layer.AddComponent<MeshFilter>();
+			layer.AddComponent<MeshRenderer>();
+			this.subLayers.Add(layer);
+		}
+		// サブメッシュ用オブジェクトを減らす
+		for (int i = this.subLayers.Count; i > newMeshes.Length; i--) {
+			GameObject layer = this.subLayers[i - 1];
+			GameObject.Destroy(layer);
+			this.subLayers.RemoveAt(i - 1);
+		}
+		for (int i = 0; i < this.subLayers.Count; i++) {
+			GameObject layer = this.subLayers[i];
+			var meshFilter = layer.GetComponent<MeshFilter>();
+			meshFilter.sharedMesh = newMeshes[i];
+			var renderer = layer.GetComponent<MeshRenderer>();
+			renderer.enabled = true;
+			renderer.sharedMaterial = this.material;
+			renderer.shadowCastingMode = ShadowCastingMode.TwoSided;
+		}
+		this.GetComponent<MeshRenderer>().enabled = false;
 	}
 
 	public void Serialize(XmlElement node) {

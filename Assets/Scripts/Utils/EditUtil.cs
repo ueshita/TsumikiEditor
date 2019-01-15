@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System;
+using System.IO;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -130,15 +131,15 @@ public class EditUtil
 	
 	// ベクトル方向をブロック方向に変換
 	public static BlockDirection VectorToDirection(Vector3 vector) {
+		float u = Vector3.Dot(vector, Vector3.up);
+		if (u >  0.5f) return BlockDirection.Yplus;
+		if (u < -0.5f) return BlockDirection.Yminus;
 		float f = Vector3.Dot(vector, EditManager.Instance.ToWorldCoordinate(Vector3.forward));
 		if (f >  0.5f) return BlockDirection.Zplus;
 		if (f < -0.5f) return BlockDirection.Zminus;
 		float r = Vector3.Dot(vector, Vector3.right);
 		if (r >  0.5f) return BlockDirection.Xplus;
 		if (r < -0.5f) return BlockDirection.Xminus;
-		float u = Vector3.Dot(vector, Vector3.up);
-		if (u >  0.5f) return BlockDirection.Yplus;
-		if (u < -0.5f) return BlockDirection.Yminus;
 		return BlockDirection.Zplus;
 	}
 
@@ -259,5 +260,15 @@ public class EditUtil
 		position.y = Mathf.Round(position.y * 2) * 0.5f;
 		position.z = Mathf.Round(position.z);
 		return position;
+	}
+
+	public static Texture2D LoadTextureFromFile(string path) {
+		if (!File.Exists(path)) {
+			return null;
+		}
+		byte[] imageData = File.ReadAllBytes(path);
+		var texture = new Texture2D(0, 0);
+		texture.LoadImage(imageData);
+		return texture;
 	}
 }

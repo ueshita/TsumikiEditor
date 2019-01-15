@@ -30,6 +30,7 @@ public class Block
 	public BlockDirection direction {get; private set;}
 	public BlockShape shape {get; private set;}
 	public string metaInfo {get; private set;}
+	public bool enterable {get; set;}
 	private int[] textureChips = null;
 	private int hashCode;
 
@@ -41,6 +42,7 @@ public class Block
 		this.shape = shape;
 		this.textureChips = new int[shape.meshes.Length];
 		this.direction = direction;
+		this.enterable = true;
 		this.SetPosition(position);
 	}
 
@@ -249,7 +251,6 @@ public class Block
 		bool vertexHasWrote = false;
 		for (int i = 0; i < 6; i++) {
 			// 隣のブロックに完全に覆われていたら省略する
-			bool occuludes = false;
 			if (this.IsOcculuded(blockGroup, (BlockDirection)i)) {
 				continue;
 			}
@@ -321,8 +322,15 @@ public class Block
 		return this.shape.meshes[index];
 	}
 	
+	public Mesh GetObjectMesh() {
+		return this.shape.meshes.Length >= 6 ? this.shape.meshes[6] : null;
+	}
+	
 	// 上に4ブロック分のスペースがあるか
 	public bool IsEnterable(BlockGroup blockGroup) {
+		if (this.enterable == false) {
+			return false;
+		}
 		if (this.shape.panelVertices == null) {
 			return false;
 		}
@@ -344,7 +352,7 @@ public class Block
 		node.SetAttribute("dir", ((int)this.direction).ToString());
 		string[] tileStrArray = Array.ConvertAll<int, string>(this.textureChips, (value) => {return value.ToString();});
 		node.SetAttribute("tile", string.Join(",", tileStrArray));
-		
+		node.SetAttribute("enterable", this.enterable.ToString());
 		if (!String.IsNullOrEmpty(this.metaInfo)) {
 			node.SetAttribute("meta", this.metaInfo);
 		}
@@ -376,6 +384,15 @@ public class Block
 			string tileStr = node.GetAttribute("tile");
 			string[] tileStrArray = tileStr.Split(',');
 			this.textureChips = Array.ConvertAll<string, int>(tileStrArray, (value) => {return int.Parse(value);});
+		}
+		
+		if (node.HasAttribute("enterable")) {
+			string enterStr = node.GetAttribute("enterable");
+			bool enterable = true;
+			bool.TryParse(enterStr, out enterable);
+			this.enterable = enterable;
+		} else {
+			this.enterable = true;
 		}
 
 		if (node.HasAttribute("meta")) {

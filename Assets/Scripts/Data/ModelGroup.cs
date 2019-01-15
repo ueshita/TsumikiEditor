@@ -41,7 +41,10 @@ public class ModelGroup
 	
 	public Model GetModel(GameObject gameObject) {
 		for (int i = 0; i < this.models.Count; i++) {
-			if (gameObject == this.models[i].gameObject) {
+			var model = this.models[i];
+			if (gameObject == model.gameObject || 
+				gameObject.transform.parent.gameObject == model.gameObject
+			) {
 				return this.models[i];
 			}
 		}

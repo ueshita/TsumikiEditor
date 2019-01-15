@@ -168,8 +168,8 @@ public static class E3DExporter
 				for (int j = 0; j < 4; j++) {
 					fieldPanel.vertices[j] = mesh.vertices[i * 4 + j] + offset;
 				}
-				fieldPanel.reversed = (blocks[i].direction == BlockDirection.Xplus) || 
-									  (blocks[i].direction == BlockDirection.Xminus);
+				fieldPanel.reversed = (blocks[i].direction == BlockDirection.Zplus) || 
+									  (blocks[i].direction == BlockDirection.Zminus);
 
 				this.panels.Add(fieldPanel);
 			}
@@ -324,7 +324,7 @@ public static class E3DExporter
 		var mem = new MemoryStream();
 		var writer = new BinaryWriter(mem);
 		
-		int textureCount = 0;
+		int textureCount = TexturePalette.Instance.GetNumTextures();
 		int materialCount = numLayers;
 		int batchCount = numLayers;
 		
@@ -346,14 +346,22 @@ public static class E3DExporter
 		
 		// AttribInfo
 		var attribs = new ShaderAttrib[]{
-			new ShaderAttrib(10, 3,  0, 0),	// "a_Position",
+			new ShaderAttrib(10, 3,  0, 0),		// "a_Position",
 			//new ShaderAttrib(10, 3, 12, 0),	// "a_Normal",
 			//new ShaderAttrib(10, 2, 24, 0)	// "a_TexCoord",
-			new ShaderAttrib(9, 3, 12, 0),	// "a_Normal", (16bit)
-			new ShaderAttrib(9, 2, 20, 0)	// "a_TexCoord",　(16bit)
+			new ShaderAttrib(9, 3, 12, 0),		// "a_Normal", (16bit)
+			new ShaderAttrib(9, 2, 20, 0)		// "a_TexCoord",　(16bit)
 		};
 		for (int i = 0; i < attribs.Length; i++) {
 			attribs[i].Write(writer);
+		}
+
+		// TextureInfo
+		for (int i = 0; i < textureCount; i++) {
+			Texture2D texture = TexturePalette.Instance.GetTexture(i);
+			byte[] bytes = Encoding.UTF8.GetBytes(texture.name);
+			writer.Write(bytes.Length);
+			writer.Write(bytes);
 		}
 
 		// MaterialInfo
@@ -363,10 +371,19 @@ public static class E3DExporter
 			writer.Write(new Color(0.0f, 0.0f, 0.0f, 1.0f));	// emissionColor
 			writer.Write(new Color(0.0f, 0.0f, 0.0f, 1.0f));	// specularColor
 			writer.Write(0.0f);									// shiniess
-			writer.Write(-1);									// TextureId0
-			writer.Write(-1);									// TextureId1
-			writer.Write(-1);									// TextureId2
-			writer.Write(-1);									// TextureId3
+
+			if (i == 0) {
+				// ブロックレイヤー
+				for (int j = 0; j < 4; j++) {
+					Texture2D texture = TexturePalette.Instance.GetTexture(j);
+					writer.Write((texture != null) ? j : -1);   // TextureId
+				}
+			} else {
+				// 水レイヤー
+				for (int j = 0; j < 4; j++) {
+					writer.Write(-1);                           // TextureId
+				}
+			}
 		}
 
 		// BatchInfo
@@ -426,8 +443,8 @@ public static class E3DExporter
 		var mem = new MemoryStream();
 		var writer = new BinaryWriter(mem);
 
-		writer.Write("E3MT".ToArray());	// Identifier
-		writer.Write(2);				// Version
+		writer.Write(Encoding.UTF8.GetBytes("E3MT").ToArray());	// Identifier
+		writer.Write(3);				// Version
 
 		// バウンディングボックス
 		writer.Write(minpos);
@@ -448,18 +465,28 @@ public static class E3DExporter
 			position += colliderOffset;
 			writer.Write(position);
 		}
-
+		
 		// 3Dモデル配置
 		Model[] models = modelGroup.GetAllModels();
+
+		// 使われているモデルシェイプの名前を出力
+		List<ModelShape> modelShapes = models.Select(model => model.shape).Distinct().ToList();
+		writer.Write(modelShapes.Count);
+		foreach (var shape in modelShapes) {
+			writer.Write(Encoding.UTF8.GetBytes(shape.name));
+			writer.Write((byte)0);
+		}
+		
+		// 3Dモデル配置
 		writer.Write(models.Length);
 		foreach (var model in models) {
 			Vector3 position = model.position;
 			if (toRightHanded) {
 				position = FileUtil.ApplyRightHanded(position);
 			}
-			writer.Write(model.shape.id);
+			writer.Write(modelShapes.IndexOf(model.shape));
 			writer.Write(position);
-			writer.Write(model.offset);
+			writer.Write(model.shape.offset + model.offset);
 			writer.Write((float)model.rotation);
 			writer.Write(model.shape.scale * model.scale);
 		}
